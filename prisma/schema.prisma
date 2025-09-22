@@ -3,7 +3,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -18,4 +17,5 @@ model User {
   provider   String
   providerId String
   createdAt  DateTime @default(now())
+  avatar     String?
 }
