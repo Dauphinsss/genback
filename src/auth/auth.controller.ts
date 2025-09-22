@@ -27,6 +27,24 @@ export class AuthController {
     return res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}`);
   }
 
+  @Get('microsoft')
+  @UseGuards(AuthGuard('microsoft'))
+  async microsoftLogin() {}
+
+  @Get('microsoft/callback')
+  @UseGuards(AuthGuard('microsoft'))
+  async microsoftCallback(@Req() req, @Res() res) {
+    const { email, name, provider, providerId, avatar } = req.user;
+    const { token } = await this.authService.validateOAuthLogin(
+      email,
+      name,
+      provider,
+      providerId,
+      avatar,
+    );
+    return res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}`);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(@Req() req) {
