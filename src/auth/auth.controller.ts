@@ -7,12 +7,10 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  // inicio de login
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleLogin() {}
 
-  // callback
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req, @Res() res) {
