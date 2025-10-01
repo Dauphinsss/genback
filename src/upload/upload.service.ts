@@ -19,15 +19,12 @@ export class UploadService {
       throw new Error('Usuario no encontrado');
     }
 
-    // Eliminar avatar anterior si existe y no es de un servicio externo
     if (currentUser.avatar && this.isLocalFile(currentUser.avatar)) {
       await this.fileUploadService.deleteFile(currentUser.avatar);
     }
 
-    // Subir nuevo archivo
     const avatarUrl = await this.fileUploadService.uploadFile(file, userId);
-
-    // Actualizar usuario en la base de datos
+    
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: { avatar: avatarUrl },
@@ -48,7 +45,6 @@ export class UploadService {
   }
 
   private isLocalFile(url: string): boolean {
-    // Verificar si es un archivo local (no de servicios externos como Google, ui-avatars, Cloudinary, etc.)
     return url.includes('/uploads/') || 
            url.startsWith('http://localhost') || 
            url.startsWith('http://127.0.0.1');

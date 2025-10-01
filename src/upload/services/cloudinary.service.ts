@@ -37,10 +37,8 @@ export class CloudinaryService implements IFileUploadService {
     }
 
     try {
-      // Determinar el tipo de recurso
       const resourceType = this.getResourceType(file.mimetype);
-      
-      // Generar public_id único
+
       const publicId = `user_${userId}/avatar_${Date.now()}`;
 
       // Subir a Cloudinary
@@ -82,7 +80,7 @@ export class CloudinaryService implements IFileUploadService {
   private getResourceType(mimetype: string): 'image' | 'video' | 'raw' {
     if (mimetype.startsWith('image/')) return 'image';
     if (mimetype.startsWith('video/')) return 'video';
-    return 'raw'; // Para audios y otros archivos
+    return 'raw';
   }
 
   private extractPublicIdFromUrl(url: string): string | null {
