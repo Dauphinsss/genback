@@ -1,7 +1,8 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Body, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -49,5 +50,17 @@ export class AuthController {
   @Get('me')
   getProfile(@Req() req) {
     return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('profile')
+  async updateProfile(@Req() req, @Body() updateData: UpdateProfileDto) {
+    const userId = req.user.id;
+    const updatedUser = await this.authService.updateUserProfile(userId, updateData);
+    return {
+      success: true,
+      message: 'Perfil actualizado correctamente',
+      user: updatedUser,
+    };
   }
 }
