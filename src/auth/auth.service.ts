@@ -13,11 +13,19 @@ export class AuthService {
     providerId: string,
     avatar?: string,
   ) {
-    const user = await this.prisma.user.upsert({
-      where: { email },
-      update: { name, provider, providerId, avatar },
-      create: { email, name, provider, providerId, avatar },
-    });
+
+    let user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: { email, name, provider, providerId, avatar },
+      });
+    } else {
+      user =await this.prisma.user.update({
+        where: { email },
+        data: { provider, providerId },
+      });
+    }
 
     const token = jwt.sign(
       { id: user.id, email: user.email, name: user.name, avatar: user.avatar },
