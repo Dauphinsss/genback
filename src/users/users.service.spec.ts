@@ -38,21 +38,21 @@ describe('UsersService', () => {
   {/* Unit test para actualizar la foto del usuario */}
   it('Debe actualizar la foto del usuario', async () => {
     const userId = 1;
+    const newAvatarUrl = 'https://cdn/imagen-nueva.jpg';
 
     jest.spyOn(prisma.user, 'findUnique').mockResolvedValue({ id: userId } as any);
 
     const updateSpy = jest.spyOn(prisma.user, 'update').mockResolvedValue({
       id: userId,
-      avatar: 'https://cdn/imagen.png',
+      avatar: newAvatarUrl,
     } as any);
 
-    const result = await service.updateMe(userId.toString(), { avatar: 'https://cdn/imagen.png' });
+    const result = await service.updateAvatar(userId.toString(), newAvatarUrl);
+
     expect(updateSpy).toHaveBeenCalledWith({
       where: { id: userId },
-      data: { avatar: 'https://cdn/imagen.png' },
+      data: { avatar: newAvatarUrl },
     });
-    expect(result.avatar).toBe('https://cdn/imagen.png');
+    expect(result.avatar).toBe(newAvatarUrl);
   });
-
-  
 });

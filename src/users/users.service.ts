@@ -27,4 +27,15 @@ export class UsersService {
       },
     });
   }
+
+  async updateAvatar(userId: string | number, avatarUrl: string) {
+    const numericUserId = Number(userId);
+    const user = await this.prisma.user.findUnique({ where: { id: numericUserId } });
+
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return this.prisma.user.update({
+      where: { id: numericUserId },
+      data: { avatar: avatarUrl },
+    });
+  }
 }

@@ -61,3 +61,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # json
 generacion-472902-a49bace4a296.json
 package-lock.json
+
+uploads/avatars
