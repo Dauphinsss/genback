@@ -5,7 +5,14 @@ import { PrismaService } from '../prisma/prisma.service';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async updateMe (userId: string, dto: {name?: string, avatar?: string}) {
+  async findById(userId: string | number) {
+    const numericUserId = Number(userId);
+    const user = await this.prisma.user.findUnique({ where: { id: numericUserId } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return user;
+  }
+
+  async updateMe(userId: string, dto: {name?: string, avatar?: string}) {
 
     const numericUserId = Number(userId);
 
