@@ -11,7 +11,6 @@ export class MicrosoftStrategy extends PassportStrategy(Strategy, 'microsoft') {
       clientID: process.env.MS_CLIENT_ID,
       clientSecret: process.env.MS_CLIENT_SECRET,
       callbackURL: process.env.BACKEND_URL + '/auth/microsoft/callback',
-      // Scopes necesarios para Graph y refresh tokens
       scope: [
         'openid',
         'profile',
@@ -32,7 +31,6 @@ export class MicrosoftStrategy extends PassportStrategy(Strategy, 'microsoft') {
       console.log('Access Token received:', accessToken ? 'Yes' : 'No');
       console.log('Access Token length:', accessToken?.length || 0);
 
-      // Intentar decodificar el access token (si es JWT) para ver los scopes (scp)
       try {
         const parts = accessToken.split('.');
         if (parts.length === 3) {
@@ -51,7 +49,6 @@ export class MicrosoftStrategy extends PassportStrategy(Strategy, 'microsoft') {
         console.log('Could not parse access token payload:', e?.message);
       }
 
-      // Hacer petición manual al endpoint de Microsoft para obtener el perfil
       const response = await fetch('https://graph.microsoft.com/v1.0/me', {
         headers: {
           Authorization: `Bearer ${accessToken}`,

@@ -18,4 +18,27 @@ model User {
   providerId String
   createdAt  DateTime @default(now())
   avatar     String?
+
+  teachingCourses Course[] @relation("Teacher")
+  enrolledCourses CourseStudent[]
+}
+
+model Course {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  id_teacher  Int
+  
+  teacher     User     @relation("Teacher", fields: [id_teacher], references: [id])
+  students    CourseStudent[]
+}
+
+model CourseStudent {
+  id         Int      @id @default(autoincrement())
+  id_course  Int
+  id_student Int
+  
+  course     Course   @relation(fields: [id_course], references: [id])
+  student    User     @relation(fields: [id_student], references: [id])
+  
+  @@unique([id_course, id_student])
 }
