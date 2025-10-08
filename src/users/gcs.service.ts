@@ -7,7 +7,7 @@ import * as path from 'path';
 export class GCSService {
   private storage = new Storage({
     keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-    projectId: 'generacion-472902'
+    projectId: 'generacion-472902',
   });
   private bucketName = process.env.GCP_BUCKET_NAME;
 
@@ -20,7 +20,7 @@ export class GCSService {
 
     await blob.save(file.buffer, {
       contentType: file.mimetype,
-      validation: 'md5'
+      validation: 'md5',
     });
 
     return `https://storage.googleapis.com/${this.bucketName}/${gcsFileName}`;

@@ -21,6 +21,7 @@ model User {
 
   teachingCourses Course[] @relation("Teacher")
   enrolledCourses CourseStudent[]
+  privileges      UserPrivilege[]
 }
 
 model Course {
@@ -41,4 +42,27 @@ model CourseStudent {
   student    User     @relation(fields: [id_student], references: [id])
   
   @@unique([id_course, id_student])
+}
+
+model Privilege {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  category    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  users       UserPrivilege[]
+}
+
+model UserPrivilege {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  privilegeId  Int
+  assignedAt   DateTime @default(now())
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  privilege    Privilege @relation(fields: [privilegeId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, privilegeId])
 }

@@ -13,7 +13,6 @@ export class AuthService {
     providerId: string,
     avatar?: string,
   ) {
-
     let user = await this.prisma.user.findUnique({ where: { email } });
 
     if (!user) {
@@ -21,7 +20,7 @@ export class AuthService {
         data: { email, name, provider, providerId, avatar },
       });
     } else {
-      user =await this.prisma.user.update({
+      user = await this.prisma.user.update({
         where: { email },
         data: { provider, providerId },
       });
