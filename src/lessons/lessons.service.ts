@@ -4,8 +4,9 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class LessonsService {
@@ -17,14 +18,13 @@ export class LessonsService {
       where: { id: createLessonDto.unitId },
     });
 
-    // Si la unidad no existe
     if (!unitExists) {
       throw new NotFoundException(
-        `Unit with ID ${createLessonDto.unitId} not found.`,
+        `No se encontró la unidad con ID ${createLessonDto.unitId}.`,
       );
     }
 
-    // Verificar si ya existe una leccion
+    // Verificar si ya existe una lección
     const existingLesson = await this.prismaService.lesson.findFirst({
       where: {
         unitId: createLessonDto.unitId,
@@ -34,13 +34,24 @@ export class LessonsService {
 
     if (existingLesson) {
       throw new ConflictException(
-        `A lesson with unitId ${createLessonDto.unitId} and index ${createLessonDto.index} already exists.`,
+        `Ya existe una lección con el índice ${createLessonDto.index} en la unidad ${createLessonDto.unitId}.`,
       );
     }
 
-    return this.prismaService.lesson.create({
-      data: createLessonDto,
-    });
+    // Crear leccion
+    try {
+      return await this.prismaService.lesson.create({
+        data: createLessonDto,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Ya existe una lección con este título.');
+      }
+      throw error;
+    }
   }
 
   // Obtener todas las lecciones
@@ -53,9 +64,11 @@ export class LessonsService {
     const lesson = await this.prismaService.lesson.findUnique({
       where: { id },
     });
+
     if (!lesson) {
-      throw new NotFoundException(`Lesson with ID ${id} not found.`);
+      throw new NotFoundException(`No se encontró la lección con ID ${id}.`);
     }
+
     return this.prismaService.lesson.delete({ where: { id } });
   }
 }
