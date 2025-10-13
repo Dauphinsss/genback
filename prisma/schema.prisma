@@ -19,26 +19,56 @@ model User {
   createdAt  DateTime @default(now())
   avatar     String?
 
-  teachingCourses Course[] @relation("Teacher")
+  teachingCourses Course[]        @relation("Teacher")
   enrolledCourses CourseStudent[]
 }
 
 model Course {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique
-  id_teacher  Int
-  
-  teacher     User     @relation("Teacher", fields: [id_teacher], references: [id])
-  students    CourseStudent[]
+  id         Int      @id @default(autoincrement())
+  code       String   @unique
+  id_teacher Int
+  title      String   @default("Sin título")
+  createdAt  DateTime @default(now())
+
+  teacher  User            @relation("Teacher", fields: [id_teacher], references: [id])
+  students CourseStudent[]
+
+  //units        Unit[]
 }
 
 model CourseStudent {
-  id         Int      @id @default(autoincrement())
+  id         Int @id @default(autoincrement())
   id_course  Int
   id_student Int
-  
-  course     Course   @relation(fields: [id_course], references: [id])
-  student    User     @relation(fields: [id_student], references: [id])
-  
+
+  course  Course @relation(fields: [id_course], references: [id])
+  student User   @relation(fields: [id_student], references: [id])
+
   @@unique([id_course, id_student])
+}
+
+model Unit {
+  id       Int    @id @default(autoincrement())
+
+  title     String
+  index     Int
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  lessons Lesson[]
+
+  @@unique([index])
+}
+
+model Lesson {
+  id     Int  @id @default(autoincrement())
+  unitId Int
+  unit   Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  title     String
+  index     Int
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([unitId, index])
 }
