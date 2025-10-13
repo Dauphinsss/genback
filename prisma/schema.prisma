@@ -50,7 +50,7 @@ model CourseStudent {
 model Unit {
   id       Int    @id @default(autoincrement())
 
-  title     String
+  title     String 
   index     Int
   published Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -65,7 +65,7 @@ model Lesson {
   unitId Int
   unit   Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
-  title     String
+  title     String 
   index     Int
   published Boolean  @default(true)
   createdAt DateTime @default(now())
