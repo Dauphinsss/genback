@@ -5,7 +5,6 @@ import { CreateTopicDto, UpdateTopicDto } from './dto/topic.dto';
 
 describe('TopicsService', () => {
   let service: TopicsService;
-  let prisma: PrismaService;
 
   const mockPrismaService = {
     topic: {
@@ -29,7 +28,6 @@ describe('TopicsService', () => {
     }).compile();
 
     service = module.get<TopicsService>(TopicsService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {
@@ -39,7 +37,7 @@ describe('TopicsService', () => {
   describe('createTopic', () => {
     it('should create a topic with default type "content"', async () => {
       const createTopicDto: CreateTopicDto = {
-        name: 'Introduction to React'
+        name: 'Introduction to React',
       };
 
       const expectedTopic = {
@@ -69,7 +67,7 @@ describe('TopicsService', () => {
     it('should create a topic with specified type', async () => {
       const createTopicDto: CreateTopicDto = {
         name: 'Final Exam',
-        type: 'evaluation'
+        type: 'evaluation',
       };
 
       const expectedTopic = {
@@ -189,7 +187,7 @@ describe('TopicsService', () => {
     it('should update a topic', async () => {
       const topicId = 1;
       const updateTopicDto: UpdateTopicDto = {
-        name: 'Updated Topic Name'
+        name: 'Updated Topic Name',
       };
 
       const expectedTopic = {

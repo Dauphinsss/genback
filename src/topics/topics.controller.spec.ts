@@ -6,7 +6,6 @@ import { CreateTopicDto, UpdateTopicDto } from './dto/topic.dto';
 
 describe('TopicsController', () => {
   let controller: TopicsController;
-  let service: TopicsService;
 
   const mockTopicsService = {
     createTopic: jest.fn(),
@@ -29,7 +28,6 @@ describe('TopicsController', () => {
     }).compile();
 
     controller = module.get<TopicsController>(TopicsController);
-    service = module.get<TopicsService>(TopicsService);
   });
 
   afterEach(() => {
@@ -53,7 +51,9 @@ describe('TopicsController', () => {
 
       const result = await controller.create(createTopicDto);
 
-      expect(mockTopicsService.createTopic).toHaveBeenCalledWith(createTopicDto);
+      expect(mockTopicsService.createTopic).toHaveBeenCalledWith(
+        createTopicDto,
+      );
       expect(result).toEqual(expectedTopic);
     });
 
@@ -62,10 +62,15 @@ describe('TopicsController', () => {
         name: 'Test Topic',
       };
 
-      mockTopicsService.createTopic.mockRejectedValue(new Error('Database error'));
+      mockTopicsService.createTopic.mockRejectedValue(
+        new Error('Database error'),
+      );
 
       await expect(controller.create(createTopicDto)).rejects.toThrow(
-        new HttpException('Error creating topic', HttpStatus.INTERNAL_SERVER_ERROR),
+        new HttpException(
+          'Error creating topic',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
       );
     });
   });
@@ -108,10 +113,15 @@ describe('TopicsController', () => {
     });
 
     it('should throw HttpException when fetch fails', async () => {
-      mockTopicsService.getAllTopics.mockRejectedValue(new Error('Database error'));
+      mockTopicsService.getAllTopics.mockRejectedValue(
+        new Error('Database error'),
+      );
 
       await expect(controller.findAll()).rejects.toThrow(
-        new HttpException('Error fetching topics', HttpStatus.INTERNAL_SERVER_ERROR),
+        new HttpException(
+          'Error fetching topics',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
       );
     });
   });
@@ -145,10 +155,15 @@ describe('TopicsController', () => {
 
     it('should throw HttpException when service fails', async () => {
       const topicId = 1;
-      mockTopicsService.getTopicById.mockRejectedValue(new Error('Database error'));
+      mockTopicsService.getTopicById.mockRejectedValue(
+        new Error('Database error'),
+      );
 
       await expect(controller.findOne(topicId)).rejects.toThrow(
-        new HttpException('Error fetching topic', HttpStatus.INTERNAL_SERVER_ERROR),
+        new HttpException(
+          'Error fetching topic',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
       );
     });
   });
@@ -178,7 +193,10 @@ describe('TopicsController', () => {
       const result = await controller.update(topicId, updateTopicDto);
 
       expect(mockTopicsService.getTopicById).toHaveBeenCalledWith(topicId);
-      expect(mockTopicsService.updateTopic).toHaveBeenCalledWith(topicId, updateTopicDto);
+      expect(mockTopicsService.updateTopic).toHaveBeenCalledWith(
+        topicId,
+        updateTopicDto,
+      );
       expect(result).toEqual(updatedTopic);
     });
 

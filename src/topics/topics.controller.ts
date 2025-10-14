@@ -26,7 +26,7 @@ export class TopicsController {
   async create(@Body() createTopicDto: CreateTopicDto) {
     try {
       return await this.topicsService.createTopic(createTopicDto);
-    } catch (error) {
+    } catch {
       throw new HttpException(
         'Error creating topic',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -45,7 +45,7 @@ export class TopicsController {
         return await this.topicsService.getTopicsByType(type);
       }
       return await this.topicsService.getAllTopics();
-    } catch (error) {
+    } catch {
       throw new HttpException(
         'Error fetching topics',
         HttpStatus.INTERNAL_SERVER_ERROR,
