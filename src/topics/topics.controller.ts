@@ -10,11 +10,14 @@ import {
   HttpException,
   HttpStatus,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TopicsService } from './topics.service';
 import { CreateTopicDto, UpdateTopicDto } from './dto/topic.dto';
 
 @Controller('topics')
+@UseGuards(JwtAuthGuard)
 export class TopicsController {
   constructor(private readonly topicsService: TopicsService) {}
 
