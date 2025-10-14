@@ -8,6 +8,8 @@ import { PrivilegesModule } from './privileges/privileges.module';
 import { UsersModule } from './users/users.module';
 import { UnitsModule } from './units/units.module';
 import { LessonsModule } from './lessons/lessons.module';
+import { TopicsModule } from './topics/topics.module';
+import { ContentModule } from './content/content.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { LessonsModule } from './lessons/lessons.module';
     PrismaModule,
     UnitsModule,
     LessonsModule,
+    TopicsModule,
+    ContentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
