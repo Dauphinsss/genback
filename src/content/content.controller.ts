@@ -86,7 +86,6 @@ export class ContentController {
     return await this.contentService.getAllContents();
   }
 
-  // Endpoints para Resources
   @Post(':contentId/resource')
   @UseInterceptors(FileInterceptor('file'))
   async uploadResource(
@@ -116,7 +115,7 @@ export class ContentController {
         throw error;
       }
       throw new HttpException(
-        'Error uploading resource',
+        `Error uploading resource: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
