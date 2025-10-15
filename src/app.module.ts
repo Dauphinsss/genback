@@ -6,8 +6,9 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { PrivilegesModule } from './privileges/privileges.module';
 import { UsersModule } from './users/users.module';
-import { UnitsModule } from './units/units.module';
-import { LessonsModule } from './lessons/lessons.module';
+import { UnitsModule } from './course-b/units/units.module';
+import { LessonsModule } from './course-b/lessons/lessons.module';
+import { CourseBModule } from './course-b/course-b.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { LessonsModule } from './lessons/lessons.module';
     PrismaModule,
     UnitsModule,
     LessonsModule,
+    CourseBModule,
   ],
   controllers: [AppController],
   providers: [AppService],
