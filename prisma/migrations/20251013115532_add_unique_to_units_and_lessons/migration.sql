@@ -1,0 +1,12 @@
+/*
+  Warnings:
+
+  - A unique constraint covering the columns `[title]` on the table `Lesson` will be added. If there are existing duplicate values, this will fail.
+  - A unique constraint covering the columns `[title]` on the table `Unit` will be added. If there are existing duplicate values, this will fail.
+
+*/
+-- CreateIndex
+CREATE UNIQUE INDEX "Lesson_title_key" ON "Lesson"("title");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Unit_title_key" ON "Unit"("title");
