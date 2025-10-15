@@ -33,9 +33,9 @@ model Course {
 
   teacher  User            @relation("Teacher", fields: [id_teacher], references: [id])
   students CourseStudent[]
-  
+
   // Relación muchos a muchos con Topic
-  topics   CourseTopics[]
+  topics CourseTopics[]
 }
 
 model CourseStudent {
@@ -56,184 +56,110 @@ model Privilege {
   category    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  users       UserPrivilege[]
+
+  users UserPrivilege[]
 }
 
 model UserPrivilege {
-  id           Int      @id @default(autoincrement())
-  userId       Int
-  privilegeId  Int
-  assignedAt   DateTime @default(now())
-  
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  privilege    Privilege @relation(fields: [privilegeId], references: [id], onDelete: Cascade)
-  
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  privilegeId Int
+  assignedAt  DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  privilege Privilege @relation(fields: [privilegeId], references: [id], onDelete: Cascade)
+
   @@unique([userId, privilegeId])
 }
-
 
 model CourseBase {
   id        Int      @id @default(autoincrement())
   title     String   @default("Python")
-  status String  @default("activo") 
+  status    String   @default("activo")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  units     Unit[]
+  units Unit[]
 }
 
 model Unit {
-  id         Int       @id @default(autoincrement())
-  title      String
-  index      Int
-  published  Boolean    @default(false)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id        Int      @id @default(autoincrement())
+  title     String
+  index     Int
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  courseBaseId   Int
-  courseBase     CourseBase     @relation(fields: [courseBaseId], references: [id])
+  courseBaseId Int
+  courseBase   CourseBase @relation(fields: [courseBaseId], references: [id])
 
-  lessons    Lesson[]
+  lessons Lesson[]
 }
 
 model Lesson {
-  id         Int       @id @default(autoincrement())
-  title      String
-  index      Int
-  duration   Int?       
-  content    String?    
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id        Int      @id @default(autoincrement())
+  title     String
+  index     Int
+  duration  Int?
+  content   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  unitId     Int
-  unit       Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade) 
+  unitId Int
+  unit   Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
-  topics     Topic[]
+  topics Topic[]
 }
 
-
 model Topic {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   title       String
   description String?
 
-  lessonId    Int
-  lesson      Lesson   @relation(fields: [lessonId], references: [id])
-}
+  lessonId Int
+  lesson   Lesson @relation(fields: [lessonId], references: [id])
 
-
-model Topic {
-  id          Int      @id @default(autoincrement())
-  name        String   
-  type        TopicType     
-  createdAt   DateTime @default(now())
-  
-  content     Content?
-  
-  courses     CourseTopics[]
+  // Relaciones inversas
+  content Content?
+  courses CourseTopics[]
 }
 
 model Content {
   id          Int      @id @default(autoincrement())
-  htmlContent String?  // HTML enriquecido
-  description String? 
+  htmlContent String? // HTML enriquecido
+  description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  topicId     Int      @unique
-  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topicId Int   @unique
+  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  resources   Resource[]
+  resources Resource[]
 }
 
 model Resource {
-  id          Int         @id @default(autoincrement())
-  filename    String      
-  resourceUrl String      
+  id          Int          @id @default(autoincrement())
+  filename    String
+  resourceUrl String
   type        ResourceType
-  size        Int?        
-  mimeType    String      
-  createdAt   DateTime    @default(now())
-  
-  contentId   Int 
-  content     Content     @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  size        Int?
+  mimeType    String
+  createdAt   DateTime     @default(now())
+
+  contentId Int
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
 }
 
 // Tabla intermedia para Course-Topic (muchos a muchos)
 model CourseTopics {
-  courseId    Int
-  topicId     Int
-  order       Int?        
-  createdAt   DateTime    @default(now())
-  
-  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  topic       Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  
-  @@id([courseId, topicId])
-}
+  courseId  Int
+  topicId   Int
+  order     Int?
+  createdAt DateTime @default(now())
 
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topic  Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-enum TopicType {
-  content
-  evaluation
-}
-
-enum ResourceType {
-  IMAGE
-  VIDEO
-  AUDIO
-  DOCUMENT
-  OTHER
-}
-
-model Topic {
-  id          Int      @id @default(autoincrement())
-  name        String   
-  type        TopicType     
-  createdAt   DateTime @default(now())
-  
-  content     Content?
-  
-  courses     CourseTopics[]
-}
-
-model Content {
-  id          Int      @id @default(autoincrement())
-  htmlContent String?  // HTML enriquecido
-  description String? 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  topicId     Int      @unique
-  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
-
-  resources   Resource[]
-}
-
-model Resource {
-  id          Int         @id @default(autoincrement())
-  filename    String      
-  resourceUrl String      
-  type        ResourceType
-  size        Int?        
-  mimeType    String      
-  createdAt   DateTime    @default(now())
-  
-  contentId   Int 
-  content     Content     @relation(fields: [contentId], references: [id], onDelete: Cascade)
-}
-
-// Tabla intermedia para Course-Topic (muchos a muchos)
-model CourseTopics {
-  courseId    Int
-  topicId     Int
-  order       Int?        
-  createdAt   DateTime    @default(now())
-  
-  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  topic       Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  
   @@id([courseId, topicId])
 }
 
