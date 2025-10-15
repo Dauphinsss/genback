@@ -70,28 +70,53 @@ model UserPrivilege {
   
   @@unique([userId, privilegeId])
 }
-model Unit {
-  id       Int    @id @default(autoincrement())
 
-  title     String 
-  index     Int
-  published Boolean  @default(true)
+
+model CourseBase {
+  id        Int      @id @default(autoincrement())
+  title     String   @default("Python")
+  status String  @default("activo") 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  lessons Lesson[]
+  units     Unit[]
+}
 
-  @@unique([index])
+model Unit {
+  id         Int       @id @default(autoincrement())
+  title      String
+  index      Int
+  published  Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  courseBaseId   Int
+  courseBase     CourseBase     @relation(fields: [courseBaseId], references: [id])
+
+  lessons    Lesson[]
 }
 
 model Lesson {
-  id     Int  @id @default(autoincrement())
-  unitId Int
-  unit   Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  id         Int       @id @default(autoincrement())
+  title      String
+  index      Int
+  duration   Int?       
+  content    String?    
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  title     String 
-  index     Int
-  published Boolean  @default(true)
-  createdAt DateTime @default(now())
+  unitId     Int
+  unit       Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade) 
 
-  @@unique([unitId, index])
+  topics     Topic[]
 }
+
+model Topic {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+
+  lessonId    Int
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+}
+
