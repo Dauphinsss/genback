@@ -8,6 +8,8 @@ import { PrivilegesModule } from './privileges/privileges.module';
 import { UsersModule } from './users/users.module';
 import { UnitsModule } from './course-b/units/units.module';
 import { LessonsModule } from './course-b/lessons/lessons.module';
+import { TopicsModule } from './topics/topics.module';
+import { ContentModule } from './content/content.module';
 import { CourseBModule } from './course-b/course-b.module';
 
 @Module({
@@ -20,6 +22,8 @@ import { CourseBModule } from './course-b/course-b.module';
     UnitsModule,
     LessonsModule,
     CourseBModule,
+    TopicsModule,
+    ContentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

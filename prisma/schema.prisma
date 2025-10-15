@@ -33,8 +33,9 @@ model Course {
 
   teacher  User            @relation("Teacher", fields: [id_teacher], references: [id])
   students CourseStudent[]
-
-  //units        Unit[]
+  
+  // Relación muchos a muchos con Topic
+  topics   CourseTopics[]
 }
 
 model CourseStudent {
@@ -111,6 +112,7 @@ model Lesson {
   topics     Topic[]
 }
 
+
 model Topic {
   id          Int      @id @default(autoincrement())
   title       String
@@ -120,3 +122,130 @@ model Topic {
   lesson      Lesson   @relation(fields: [lessonId], references: [id])
 }
 
+
+model Topic {
+  id          Int      @id @default(autoincrement())
+  name        String   
+  type        TopicType     
+  createdAt   DateTime @default(now())
+  
+  content     Content?
+  
+  courses     CourseTopics[]
+}
+
+model Content {
+  id          Int      @id @default(autoincrement())
+  htmlContent String?  // HTML enriquecido
+  description String? 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topicId     Int      @unique
+  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  resources   Resource[]
+}
+
+model Resource {
+  id          Int         @id @default(autoincrement())
+  filename    String      
+  resourceUrl String      
+  type        ResourceType
+  size        Int?        
+  mimeType    String      
+  createdAt   DateTime    @default(now())
+  
+  contentId   Int 
+  content     Content     @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+// Tabla intermedia para Course-Topic (muchos a muchos)
+model CourseTopics {
+  courseId    Int
+  topicId     Int
+  order       Int?        
+  createdAt   DateTime    @default(now())
+  
+  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topic       Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  
+  @@id([courseId, topicId])
+}
+
+
+enum TopicType {
+  content
+  evaluation
+}
+
+enum ResourceType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  OTHER
+}
+
+model Topic {
+  id          Int      @id @default(autoincrement())
+  name        String   
+  type        TopicType     
+  createdAt   DateTime @default(now())
+  
+  content     Content?
+  
+  courses     CourseTopics[]
+}
+
+model Content {
+  id          Int      @id @default(autoincrement())
+  htmlContent String?  // HTML enriquecido
+  description String? 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topicId     Int      @unique
+  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  resources   Resource[]
+}
+
+model Resource {
+  id          Int         @id @default(autoincrement())
+  filename    String      
+  resourceUrl String      
+  type        ResourceType
+  size        Int?        
+  mimeType    String      
+  createdAt   DateTime    @default(now())
+  
+  contentId   Int 
+  content     Content     @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+// Tabla intermedia para Course-Topic (muchos a muchos)
+model CourseTopics {
+  courseId    Int
+  topicId     Int
+  order       Int?        
+  createdAt   DateTime    @default(now())
+  
+  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topic       Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  
+  @@id([courseId, topicId])
+}
+
+enum TopicType {
+  content
+  evaluation
+}
+
+enum ResourceType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  OTHER
+}
