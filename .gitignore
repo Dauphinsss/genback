@@ -63,3 +63,7 @@ generacion-472902-a49bace4a296.json
 package-lock.json
 
 uploads/avatars
+
+# Prisma
+/prisma/export.ts
+/prisma/seed-data.json
