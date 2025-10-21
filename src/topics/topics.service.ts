@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTopicDto, UpdateTopicDto } from './dto/topic.dto';
+import { GCSContentService } from '../content/gcs-content.service';
 
 @Injectable()
 export class TopicsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private gcsService: GCSContentService,
+  ) {}
 
   /**
    * Crear un nuevo topic
@@ -22,11 +26,8 @@ export class TopicsService {
     });
   }
 
-  /**
-   * Obtener todos los topics con sus relaciones
-   */
   async getAllTopics() {
-    return this.prisma.topic.findMany({
+    const topics = await this.prisma.topic.findMany({
       include: {
         content: {
           include: {
@@ -41,13 +42,28 @@ export class TopicsService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return Promise.all(
+      topics.map(async (topic) => {
+        if (topic.content?.htmlFileUrl) {
+          const htmlContent = await this.gcsService.downloadHtmlFile(
+            topic.content.htmlFileUrl,
+          );
+          return {
+            ...topic,
+            content: {
+              ...topic.content,
+              htmlContent,
+            },
+          };
+        }
+        return topic;
+      }),
+    );
   }
 
-  /**
-   * Obtener un topic por ID
-   */
   async getTopicById(id: number) {
-    return this.prisma.topic.findUnique({
+    const topic = await this.prisma.topic.findUnique({
       where: { id },
       include: {
         content: {
@@ -62,6 +78,21 @@ export class TopicsService {
         },
       },
     });
+
+    if (topic?.content?.htmlFileUrl) {
+      const htmlContent = await this.gcsService.downloadHtmlFile(
+        topic.content.htmlFileUrl,
+      );
+      return {
+        ...topic,
+        content: {
+          ...topic.content,
+          htmlContent,
+        },
+      };
+    }
+
+    return topic;
   }
 
   /**
@@ -86,20 +117,23 @@ export class TopicsService {
     });
   }
 
-  /**
-   * Eliminar un topic
-   */
   async deleteTopic(id: number) {
+    const topic = await this.prisma.topic.findUnique({
+      where: { id },
+      include: { content: true },
+    });
+
+    if (topic?.content?.htmlFileUrl) {
+      await this.gcsService.deleteFile(topic.content.htmlFileUrl);
+    }
+
     return this.prisma.topic.delete({
       where: { id },
     });
   }
 
-  /**
-   * Obtener topics por tipo
-   */
   async getTopicsByType(type: string) {
-    return this.prisma.topic.findMany({
+    const topics = await this.prisma.topic.findMany({
       where: { type: type as 'content' | 'evaluation' },
       include: {
         content: {
@@ -115,5 +149,23 @@ export class TopicsService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return Promise.all(
+      topics.map(async (topic) => {
+        if (topic.content?.htmlFileUrl) {
+          const htmlContent = await this.gcsService.downloadHtmlFile(
+            topic.content.htmlFileUrl,
+          );
+          return {
+            ...topic,
+            content: {
+              ...topic.content,
+              htmlContent,
+            },
+          };
+        }
+        return topic;
+      }),
+    );
   }
 }

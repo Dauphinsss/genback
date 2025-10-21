@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TopicsService } from './topics.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { GCSContentService } from '../content/gcs-content.service';
 import { CreateTopicDto, UpdateTopicDto } from './dto/topic.dto';
 
 describe('TopicsService', () => {
@@ -16,6 +17,10 @@ describe('TopicsService', () => {
     },
   };
 
+  const mockGCSContentService = {
+    deleteFile: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -23,6 +28,10 @@ describe('TopicsService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: GCSContentService,
+          useValue: mockGCSContentService,
         },
       ],
     }).compile();
@@ -224,6 +233,13 @@ describe('TopicsService', () => {
   describe('deleteTopic', () => {
     it('should delete a topic', async () => {
       const topicId = 1;
+      const topicWithContent = {
+        id: 1,
+        name: 'Deleted Topic',
+        type: 'content',
+        createdAt: new Date(),
+        content: null,
+      };
       const deletedTopic = {
         id: 1,
         name: 'Deleted Topic',
@@ -231,10 +247,55 @@ describe('TopicsService', () => {
         createdAt: new Date(),
       };
 
+      mockPrismaService.topic.findUnique.mockResolvedValue(topicWithContent);
       mockPrismaService.topic.delete.mockResolvedValue(deletedTopic);
 
       const result = await service.deleteTopic(topicId);
 
+      expect(mockPrismaService.topic.findUnique).toHaveBeenCalledWith({
+        where: { id: topicId },
+        include: { content: true },
+      });
+      expect(mockPrismaService.topic.delete).toHaveBeenCalledWith({
+        where: { id: topicId },
+      });
+      expect(result).toEqual(deletedTopic);
+    });
+
+    it('should delete HTML file from GCS if content exists', async () => {
+      const topicId = 1;
+      const htmlFileUrl =
+        'https://storage.googleapis.com/bucket/topics/1/content.html';
+      const topicWithContent = {
+        id: 1,
+        name: 'Topic with Content',
+        type: 'content',
+        createdAt: new Date(),
+        content: {
+          id: 1,
+          htmlFileUrl: htmlFileUrl,
+          description: 'Test',
+          topicId: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      };
+      const deletedTopic = {
+        id: 1,
+        name: 'Topic with Content',
+        type: 'content',
+        createdAt: new Date(),
+      };
+
+      mockPrismaService.topic.findUnique.mockResolvedValue(topicWithContent);
+      mockPrismaService.topic.delete.mockResolvedValue(deletedTopic);
+      mockGCSContentService.deleteFile.mockResolvedValue(undefined);
+
+      const result = await service.deleteTopic(topicId);
+
+      expect(mockGCSContentService.deleteFile).toHaveBeenCalledWith(
+        htmlFileUrl,
+      );
       expect(mockPrismaService.topic.delete).toHaveBeenCalledWith({
         where: { id: topicId },
       });
