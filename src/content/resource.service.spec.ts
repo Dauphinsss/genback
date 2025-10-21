@@ -63,7 +63,7 @@ describe('ResourceService', () => {
       await expect(service.uploadResource(mockFile, contentId)).rejects.toThrow(
         'Las imágenes deben ir embebidas en base64 dentro del HTML',
       );
-      
+
       expect(mockPrismaService.content.findUnique).toHaveBeenCalledWith({
         where: { id: contentId },
       });

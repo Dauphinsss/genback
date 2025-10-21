@@ -76,10 +76,7 @@ export class GCSContentService {
   /**
    * Subir archivo HTML al GCS
    */
-  async uploadHtmlFile(
-    htmlContent: string,
-    topicId: number,
-  ): Promise<string> {
+  async uploadHtmlFile(htmlContent: string, topicId: number): Promise<string> {
     const gcsFileName = `topics/${topicId}/content.html`;
     const bucket = this.storage.bucket(this.bucketName);
     const blob = bucket.file(gcsFileName);
@@ -107,7 +104,7 @@ export class GCSContentService {
       const bucket = this.storage.bucket(this.bucketName);
       const file = bucket.file(fileName);
       const [contents] = await file.download();
-      
+
       return contents.toString('utf-8');
     } catch (error) {
       console.error('Error downloading HTML from GCS:', error);
