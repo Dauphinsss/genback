@@ -15,12 +15,18 @@ import { PrismaModule } from '../prisma/prisma.module';
         fileSize: 50 * 1024 * 1024, // 50MB para videos
       },
       fileFilter: (req, file, callback) => {
+        // Bloquear imágenes (deben ir en base64 en el HTML)
+        if (file.mimetype.startsWith('image/')) {
+          callback(
+            new Error(
+              'Las imágenes deben ir embebidas en base64 dentro del HTML. No se permite subir imágenes como recursos.',
+            ),
+            false,
+          );
+          return;
+        }
+
         const allowedMimeTypes = [
-          // Imágenes
-          'image/jpeg',
-          'image/png',
-          'image/webp',
-          'image/gif',
           // Videos
           'video/mp4',
           'video/webm',

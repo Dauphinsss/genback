@@ -47,7 +47,7 @@ describe('ResourceService', () => {
   });
 
   describe('uploadResource', () => {
-    it('should upload an image resource', async () => {
+    it('should block image upload with BadRequestException', async () => {
       const contentId = 1;
       const mockFile = {
         originalname: 'test-image.jpg',
@@ -56,46 +56,18 @@ describe('ResourceService', () => {
         size: 1024,
       } as Express.Multer.File;
 
-      const mockContent = { id: 1, topicId: 1, htmlContent: '<p>Content</p>' };
-      const mockGCSUrl =
-        'https://storage.googleapis.com/bucket/content/1/test-image.jpg';
+      const mockContent = { id: 1, topicId: 1, htmlFileUrl: 'https://...' };
 
       mockPrismaService.content.findUnique.mockResolvedValue(mockContent);
-      mockGCSService.uploadFile.mockResolvedValue(mockGCSUrl);
 
-      const expectedResource = {
-        id: 1,
-        filename: 'test-image.jpg',
-        resourceUrl: mockGCSUrl,
-        type: 'IMAGE',
-        size: 1024,
-        mimeType: 'image/jpeg',
-        contentId: 1,
-        createdAt: new Date(),
-      };
-
-      mockPrismaService.resource.create.mockResolvedValue(expectedResource);
-
-      const result = await service.uploadResource(mockFile, contentId);
-
+      await expect(service.uploadResource(mockFile, contentId)).rejects.toThrow(
+        'Las imágenes deben ir embebidas en base64 dentro del HTML',
+      );
+      
       expect(mockPrismaService.content.findUnique).toHaveBeenCalledWith({
         where: { id: contentId },
       });
-      expect(mockGCSService.uploadFile).toHaveBeenCalledWith(
-        mockFile,
-        contentId,
-      );
-      expect(mockPrismaService.resource.create).toHaveBeenCalledWith({
-        data: {
-          filename: 'test-image.jpg',
-          resourceUrl: mockGCSUrl,
-          type: 'IMAGE',
-          size: 1024,
-          mimeType: 'image/jpeg',
-          contentId,
-        },
-      });
-      expect(result).toEqual(expectedResource);
+      expect(mockGCSService.uploadFile).not.toHaveBeenCalled();
     });
 
     it('should upload a video resource', async () => {
