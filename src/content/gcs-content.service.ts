@@ -72,4 +72,46 @@ export class GCSContentService {
       return false;
     }
   }
+
+  /**
+   * Subir archivo HTML al GCS
+   */
+  async uploadHtmlFile(
+    htmlContent: string,
+    topicId: number,
+  ): Promise<string> {
+    const gcsFileName = `topics/${topicId}/content.html`;
+    const bucket = this.storage.bucket(this.bucketName);
+    const blob = bucket.file(gcsFileName);
+
+    await blob.save(htmlContent, {
+      contentType: 'text/html',
+      metadata: {
+        cacheControl: 'no-cache',
+      },
+    });
+
+    return `https://storage.googleapis.com/${this.bucketName}/${gcsFileName}`;
+  }
+
+  /**
+   * Obtener contenido HTML desde GCS
+   */
+  async downloadHtmlFile(fileUrl: string): Promise<string> {
+    try {
+      const fileName = this.extractFileNameFromUrl(fileUrl);
+      if (!fileName) {
+        throw new Error('Invalid file URL');
+      }
+
+      const bucket = this.storage.bucket(this.bucketName);
+      const file = bucket.file(fileName);
+      const [contents] = await file.download();
+      
+      return contents.toString('utf-8');
+    } catch (error) {
+      console.error('Error downloading HTML from GCS:', error);
+      throw error;
+    }
+  }
 }

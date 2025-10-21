@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GCSContentService } from './gcs-content.service';
 
@@ -17,6 +17,13 @@ export class ResourceService {
 
     if (!content) {
       throw new NotFoundException('Content no encontrado');
+    }
+
+    // Bloquear subida de imágenes (ahora deben ir en base64 en el HTML)
+    if (file.mimetype.startsWith('image/')) {
+      throw new BadRequestException(
+        'Las imágenes deben ir embebidas en base64 dentro del HTML. No se permite subir imágenes como recursos independientes.',
+      );
     }
 
     // Subir a Google Cloud Storage

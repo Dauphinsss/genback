@@ -127,7 +127,7 @@ model Topic {
 
 model Content {
   id          Int      @id @default(autoincrement())
-  htmlContent String? // HTML enriquecido
+  htmlFileUrl String? // URL del archivo HTML en GCS
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
