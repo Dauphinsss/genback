@@ -17,11 +17,11 @@ async function main() {
   await prisma.userPrivilege.deleteMany();
   await prisma.resource.deleteMany();
   await prisma.content.deleteMany();
+  await prisma.lessonTopic.deleteMany();
   await prisma.lesson.deleteMany();
   await prisma.unit.deleteMany();
   await prisma.topic.deleteMany();
   await prisma.courseStudent.deleteMany();
-  await prisma.courseTopics.deleteMany();
   await prisma.course.deleteMany();
   await prisma.courseBase.deleteMany();
   await prisma.privilege.deleteMany();
@@ -107,7 +107,7 @@ async function main() {
   await prisma.unit.createMany({ data: [] });
   await prisma.topic.createMany({ data: [] });
   await prisma.courseStudent.createMany({ data: [] });
-  await prisma.courseTopics.createMany({ data: [] });
+  await prisma.lessonTopic.createMany({ data: [] });
   await prisma.course.createMany({ data: [] });
   await prisma.courseBase.createMany({ data: [] });
 

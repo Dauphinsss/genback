@@ -50,7 +50,7 @@ describe('LessonsService', () => {
       const row = {
         id: 7,
         title: 'L1',
-        topics: [{ id: 100, title: 'T1' }],
+        lessonTopics: [{ id: 100, topicId: 1 }],
       } as any;
       prisma.lesson.findUnique.mockResolvedValue(row);
 
@@ -58,7 +58,7 @@ describe('LessonsService', () => {
 
       expect(prisma.lesson.findUnique).toHaveBeenCalledWith({
         where: { id: 7 },
-        include: { topics: true },
+        include: { lessonTopics: true },
       });
       expect(result).toBe(row);
     });

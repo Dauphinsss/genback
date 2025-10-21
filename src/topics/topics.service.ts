@@ -17,7 +17,7 @@ export class TopicsService {
       },
       include: {
         content: true,
-        courses: true,
+        lessonTopics: true,
       },
     });
   }
@@ -33,9 +33,9 @@ export class TopicsService {
             resources: true,
           },
         },
-        courses: {
+        lessonTopics: {
           include: {
-            course: true,
+            lesson: true,
           },
         },
       },
@@ -55,9 +55,9 @@ export class TopicsService {
             resources: true,
           },
         },
-        courses: {
+        lessonTopics: {
           include: {
-            course: true,
+            lesson: true,
           },
         },
       },
@@ -77,9 +77,9 @@ export class TopicsService {
             resources: true,
           },
         },
-        courses: {
+        lessonTopics: {
           include: {
-            course: true,
+            lesson: true,
           },
         },
       },
@@ -107,9 +107,9 @@ export class TopicsService {
             resources: true,
           },
         },
-        courses: {
+        lessonTopics: {
           include: {
-            course: true,
+            lesson: true,
           },
         },
       },

@@ -58,7 +58,7 @@ describe('TopicsService', () => {
         },
         include: {
           content: true,
-          courses: true,
+          lessonTopics: true,
         },
       });
       expect(result).toEqual(expectedTopic);
@@ -88,7 +88,7 @@ describe('TopicsService', () => {
         },
         include: {
           content: true,
-          courses: true,
+          lessonTopics: true,
         },
       });
       expect(result).toEqual(expectedTopic);
@@ -104,7 +104,7 @@ describe('TopicsService', () => {
           type: 'content',
           createdAt: new Date(),
           content: null,
-          courses: [],
+          lessonTopics: [],
         },
         {
           id: 2,
@@ -112,7 +112,7 @@ describe('TopicsService', () => {
           type: 'evaluation',
           createdAt: new Date(),
           content: { id: 1, htmlContent: '<p>Content</p>' },
-          courses: [],
+          lessonTopics: [],
         },
       ];
 
@@ -127,9 +127,9 @@ describe('TopicsService', () => {
               resources: true,
             },
           },
-          courses: {
+          lessonTopics: {
             include: {
-              course: true,
+              lesson: true,
             },
           },
         },
@@ -148,7 +148,7 @@ describe('TopicsService', () => {
         type: 'content',
         createdAt: new Date(),
         content: null,
-        courses: [],
+        lessonTopics: [],
       };
 
       mockPrismaService.topic.findUnique.mockResolvedValue(expectedTopic);
@@ -163,9 +163,9 @@ describe('TopicsService', () => {
               resources: true,
             },
           },
-          courses: {
+          lessonTopics: {
             include: {
-              course: true,
+              lesson: true,
             },
           },
         },
@@ -210,9 +210,9 @@ describe('TopicsService', () => {
               resources: true,
             },
           },
-          courses: {
+          lessonTopics: {
             include: {
-              course: true,
+              lesson: true,
             },
           },
         },
@@ -266,9 +266,9 @@ describe('TopicsService', () => {
               resources: true,
             },
           },
-          courses: {
+          lessonTopics: {
             include: {
-              course: true,
+              lesson: true,
             },
           },
         },

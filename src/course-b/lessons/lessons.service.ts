@@ -31,7 +31,7 @@ export class LessonsService {
   async getLessonById(id: number): Promise<Lesson> {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
-      include: { topics: true },
+      include: { lessonTopics: true },
     });
     if (!lesson) throw new NotFoundException('Lección no encontrada');
     return lesson;
