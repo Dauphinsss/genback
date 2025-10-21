@@ -33,9 +33,6 @@ model Course {
 
   teacher  User            @relation("Teacher", fields: [id_teacher], references: [id])
   students CourseStudent[]
-
-  // Relación muchos a muchos con Topic
-  topics CourseTopics[]
 }
 
 model CourseStudent {
@@ -108,7 +105,7 @@ model Lesson {
   unitId Int
   unit   Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
-  topics Topic[]
+  lessonTopics LessonTopic[]
 }
 
 model Topic {
@@ -118,11 +115,21 @@ model Topic {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  lessonId Int?
-  lesson   Lesson? @relation(fields: [lessonId], references: [id])
+  content      Content?
+  lessonTopics LessonTopic[]
+}
 
-  content Content?
-  courses CourseTopics[]
+model LessonTopic {
+  id        Int      @id @default(autoincrement())
+  lessonId  Int
+  topicId   Int
+  order     Int?     @default(0) // Orden del topic dentro de la lección
+  createdAt DateTime @default(now())
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  topic  Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, topicId])
 }
 
 model Content {
@@ -151,19 +158,6 @@ model Resource {
   content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
 }
 
-// Tabla intermedia para Course-Topic (muchos a muchos)
-model CourseTopics {
-  courseId  Int
-  topicId   Int
-  order     Int?
-  createdAt DateTime @default(now())
-
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  topic  Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
-
-  @@id([courseId, topicId])
-}
-
 enum TopicType {
   content
   evaluation
@@ -174,5 +168,5 @@ enum ResourceType {
   VIDEO
   AUDIO
   DOCUMENT
-  OTHER
+  OTHER
 }

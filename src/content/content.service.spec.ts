@@ -52,7 +52,8 @@ describe('ContentService', () => {
         description: 'Test description',
       };
 
-      const mockGCSUrl = 'https://storage.googleapis.com/bucket/topics/1/content.html';
+      const mockGCSUrl =
+        'https://storage.googleapis.com/bucket/topics/1/content.html';
       mockGCSService.uploadHtmlFile.mockResolvedValue(mockGCSUrl);
 
       const expectedContent = {
@@ -115,7 +116,8 @@ describe('ContentService', () => {
   describe('getContentByTopicId', () => {
     it('should return content by topic id', async () => {
       const topicId = 1;
-      const mockHtmlFileUrl = 'https://storage.googleapis.com/bucket/topics/1/content.html';
+      const mockHtmlFileUrl =
+        'https://storage.googleapis.com/bucket/topics/1/content.html';
       const mockHtmlContent = '<p>Content</p>';
 
       const expectedContent = {
@@ -154,7 +156,9 @@ describe('ContentService', () => {
           },
         },
       });
-      expect(mockGCSService.downloadHtmlFile).toHaveBeenCalledWith(mockHtmlFileUrl);
+      expect(mockGCSService.downloadHtmlFile).toHaveBeenCalledWith(
+        mockHtmlFileUrl,
+      );
       expect(result).toHaveProperty('htmlContent', mockHtmlContent);
     });
 
@@ -180,11 +184,13 @@ describe('ContentService', () => {
       const existingContent = {
         id: 1,
         topicId: 1,
-        htmlFileUrl: 'https://storage.googleapis.com/bucket/topics/1/content.html',
+        htmlFileUrl:
+          'https://storage.googleapis.com/bucket/topics/1/content.html',
         description: 'Old description',
       };
 
-      const mockNewGCSUrl = 'https://storage.googleapis.com/bucket/topics/1/content.html';
+      const mockNewGCSUrl =
+        'https://storage.googleapis.com/bucket/topics/1/content.html';
 
       mockPrismaService.content.findUnique.mockResolvedValue(existingContent);
       mockGCSService.uploadHtmlFile.mockResolvedValue(mockNewGCSUrl);
@@ -229,7 +235,8 @@ describe('ContentService', () => {
       const deletedContent = {
         id: 1,
         topicId: 1,
-        htmlFileUrl: 'https://storage.googleapis.com/bucket/topics/1/content.html',
+        htmlFileUrl:
+          'https://storage.googleapis.com/bucket/topics/1/content.html',
         description: 'Description',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -252,7 +259,8 @@ describe('ContentService', () => {
         {
           id: 1,
           topicId: 1,
-          htmlFileUrl: 'https://storage.googleapis.com/bucket/topics/1/content.html',
+          htmlFileUrl:
+            'https://storage.googleapis.com/bucket/topics/1/content.html',
           description: 'Description 1',
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -262,7 +270,8 @@ describe('ContentService', () => {
         {
           id: 2,
           topicId: 2,
-          htmlFileUrl: 'https://storage.googleapis.com/bucket/topics/2/content.html',
+          htmlFileUrl:
+            'https://storage.googleapis.com/bucket/topics/2/content.html',
           description: 'Description 2',
           createdAt: new Date(),
           updatedAt: new Date(),
