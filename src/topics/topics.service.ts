@@ -54,16 +54,17 @@ export class TopicsService {
       },
       orderBy: { createdAt: 'desc' },
     });
+    return topics;
   }
 
   /**
    * Obtener catálogo de topics disponibles
    */
   async getAvailableTopics() {
-    return this.prisma.topic.findMany({
+    const topics = await this.prisma.topic.findMany({
       where: {
         lessonTopics: {
-          none: {}, // Solo topics que NO tienen ninguna asociación en LessonTopic
+          none: {},
         },
       },
       include: {
