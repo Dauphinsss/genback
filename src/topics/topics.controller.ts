@@ -38,6 +38,22 @@ export class TopicsController {
   }
 
   /**
+   * Obtener catálogo de topics disponibles (sin usar)
+   * GET /topics/catalog/available
+   */
+  @Get('catalog/available')
+  async getAvailableCatalog() {
+    try {
+      return await this.topicsService.getAvailableTopics();
+    } catch {
+      throw new HttpException(
+        'Error fetching available topics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
    * Obtener todos los topics
    * GET /topics
    */

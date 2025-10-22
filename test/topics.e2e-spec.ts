@@ -51,9 +51,6 @@ describe('Topics E2E', () => {
       if (testUserId) {
         await prisma.user.deleteMany({ where: { id: testUserId } });
       }
-      if (prisma) {
-        await prisma.$disconnect();
-      }
     } catch (error) {
       console.error('Error en limpieza:', error);
     }

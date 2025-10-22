@@ -8,10 +8,13 @@ import {
   Body,
   Param,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { UnitsService } from './units.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 @Controller()
+@UseGuards(JwtAuthGuard)
 export class UnitsController {
   constructor(private readonly unitsService: UnitsService) {}
 

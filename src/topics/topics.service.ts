@@ -21,7 +21,11 @@ export class TopicsService {
       },
       include: {
         content: true,
-        lessonTopics: true,
+        lessonTopics: {
+          include: {
+            lesson: true,
+          },
+        },
       },
     });
   }
@@ -36,7 +40,36 @@ export class TopicsService {
         },
         lessonTopics: {
           include: {
-            lesson: true,
+            lesson: {
+              include: {
+                unit: {
+                  include: {
+                    courseBase: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Obtener catálogo de topics disponibles
+   */
+  async getAvailableTopics() {
+    return this.prisma.topic.findMany({
+      where: {
+        lessonTopics: {
+          none: {}, // Solo topics que NO tienen ninguna asociación en LessonTopic
+        },
+      },
+      include: {
+        content: {
+          include: {
+            resources: true,
           },
         },
       },
@@ -73,7 +106,15 @@ export class TopicsService {
         },
         lessonTopics: {
           include: {
-            lesson: true,
+            lesson: {
+              include: {
+                unit: {
+                  include: {
+                    courseBase: true,
+                  },
+                },
+              },
+            },
           },
         },
       },

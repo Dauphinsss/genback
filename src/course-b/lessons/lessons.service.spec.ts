@@ -1,6 +1,6 @@
 // lessons.service.spec.ts
 import { LessonsService } from './lessons.service';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 
 type MockedFn<T extends (...args: any[]) => any> = jest.MockedFunction<T>;
 
@@ -26,7 +26,7 @@ describe('LessonsService', () => {
   });
 
   describe('getAllLessons', () => {
-    it('retorna todas las lecciones de una unidad ordenadas por createdAt asc', async () => {
+    it('retorna todas las lecciones de una unidad ordenadas por index', async () => {
       const unitId = 3;
       const rows = [
         { id: 1, unitId, title: 'A' },
@@ -39,18 +39,31 @@ describe('LessonsService', () => {
 
       expect(prisma.lesson.findMany).toHaveBeenCalledWith({
         where: { unitId },
-        orderBy: { createdAt: 'asc' },
+        include: {
+          lessonTopics: {
+            include: {
+              topic: true,
+            },
+            orderBy: {
+              order: 'asc',
+            },
+          },
+        },
+        orderBy: { index: 'asc' },
       });
       expect(result).toBe(rows);
     });
   });
 
   describe('getLessonById', () => {
-    it('retorna una lección por id (incluye topics)', async () => {
+    it('retorna una lección por id (incluye unit, courseBase y topics)', async () => {
       const row = {
         id: 7,
         title: 'L1',
-        lessonTopics: [{ id: 100, topicId: 1 }],
+        unit: { id: 1, courseBase: { id: 1, title: 'Python' } },
+        lessonTopics: [
+          { id: 100, topicId: 1, topic: { id: 1, name: 'Tema 1' } },
+        ],
       } as any;
       prisma.lesson.findUnique.mockResolvedValue(row);
 
@@ -58,7 +71,29 @@ describe('LessonsService', () => {
 
       expect(prisma.lesson.findUnique).toHaveBeenCalledWith({
         where: { id: 7 },
-        include: { lessonTopics: true },
+        include: {
+          unit: {
+            include: {
+              courseBase: true,
+            },
+          },
+          lessonTopics: {
+            include: {
+              topic: {
+                include: {
+                  content: {
+                    include: {
+                      resources: true,
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: {
+              order: 'asc',
+            },
+          },
+        },
       });
       expect(result).toBe(row);
     });
@@ -75,10 +110,10 @@ describe('LessonsService', () => {
   describe('createLesson', () => {
     const dto = { title: 'Nueva', index: 0, unitId: 5 };
 
-    it('crea una lección si la unidad existe y el curso está activo', async () => {
+    it('crea una lección si la unidad existe y el curso está inactivo', async () => {
       prisma.unit.findUnique.mockResolvedValue({
         id: 5,
-        courseBase: { status: 'activo' },
+        courseBase: { status: 'inactivo' },
       } as any);
 
       const created = { id: 10, ...dto } as any;
@@ -109,22 +144,40 @@ describe('LessonsService', () => {
       expect(prisma.lesson.create).not.toHaveBeenCalled();
     });
 
-    it('lanza BadRequest si el curso no está activo', async () => {
+    it('permite crear lecciones en cursos inactivos', async () => {
       prisma.unit.findUnique.mockResolvedValue({
         id: 5,
-        courseBase: { status: 'borrador' },
+        courseBase: { status: 'inactivo' },
+      } as any);
+
+      const created = { id: 10, ...dto } as any;
+      prisma.lesson.create.mockResolvedValue(created);
+
+      const result = await service.createLesson(dto);
+
+      expect(prisma.lesson.create).toHaveBeenCalled();
+      expect(result).toBe(created);
+    });
+
+    it('lanza error si el curso está activo (no se puede editar)', async () => {
+      prisma.unit.findUnique.mockResolvedValue({
+        id: 5,
+        courseBase: { status: 'activo' },
       } as any);
 
       await expect(service.createLesson(dto)).rejects.toThrow(
-        new BadRequestException('El curso asociado no está activo'),
+        'No se puede editar un curso activo',
       );
       expect(prisma.lesson.create).not.toHaveBeenCalled();
     });
   });
 
   describe('updateLesson', () => {
-    it('actualiza una lección si existe', async () => {
-      prisma.lesson.findUnique.mockResolvedValue({ id: 9 } as any);
+    it('actualiza una lección si existe y el curso está inactivo', async () => {
+      prisma.lesson.findUnique.mockResolvedValue({
+        id: 9,
+        unit: { courseBase: { status: 'inactivo' } },
+      } as any);
       const updated = { id: 9, title: 'Editado', index: 2 } as any;
       prisma.lesson.update.mockResolvedValue(updated);
 
@@ -135,12 +188,25 @@ describe('LessonsService', () => {
 
       expect(prisma.lesson.findUnique).toHaveBeenCalledWith({
         where: { id: 9 },
+        include: { unit: { include: { courseBase: true } } },
       });
       expect(prisma.lesson.update).toHaveBeenCalledWith({
         where: { id: 9 },
         data: { title: 'Editado', index: 2 },
       });
       expect(result).toBe(updated);
+    });
+
+    it('lanza error si el curso está activo', async () => {
+      prisma.lesson.findUnique.mockResolvedValue({
+        id: 9,
+        unit: { courseBase: { status: 'activo' } },
+      } as any);
+
+      await expect(service.updateLesson(9, { title: 'X' })).rejects.toThrow(
+        'No se puede editar un curso activo',
+      );
+      expect(prisma.lesson.update).not.toHaveBeenCalled();
     });
 
     it('lanza NotFound si no existe', async () => {
@@ -154,8 +220,11 @@ describe('LessonsService', () => {
   });
 
   describe('deleteLesson', () => {
-    it('elimina una lección si existe', async () => {
-      prisma.lesson.findUnique.mockResolvedValue({ id: 11 } as any);
+    it('elimina una lección si existe y el curso está inactivo', async () => {
+      prisma.lesson.findUnique.mockResolvedValue({
+        id: 11,
+        unit: { courseBase: { status: 'inactivo' } },
+      } as any);
       const deleted = { id: 11 } as any;
       prisma.lesson.delete.mockResolvedValue(deleted);
 
@@ -163,9 +232,22 @@ describe('LessonsService', () => {
 
       expect(prisma.lesson.findUnique).toHaveBeenCalledWith({
         where: { id: 11 },
+        include: { unit: { include: { courseBase: true } } },
       });
       expect(prisma.lesson.delete).toHaveBeenCalledWith({ where: { id: 11 } });
       expect(result).toBe(deleted);
+    });
+
+    it('lanza error si el curso está activo', async () => {
+      prisma.lesson.findUnique.mockResolvedValue({
+        id: 11,
+        unit: { courseBase: { status: 'activo' } },
+      } as any);
+
+      await expect(service.deleteLesson(11)).rejects.toThrow(
+        'No se puede eliminar lecciones de un curso activo',
+      );
+      expect(prisma.lesson.delete).not.toHaveBeenCalled();
     });
 
     it('lanza NotFound si no existe', async () => {

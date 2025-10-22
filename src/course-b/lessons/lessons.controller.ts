@@ -3,31 +3,25 @@ import {
   Controller,
   Get,
   Param,
-  Query,
   Post,
   Patch,
   Delete,
   Body,
   ParseIntPipe,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { LessonsService } from './lessons.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 @Controller('lessons')
+@UseGuards(JwtAuthGuard)
 export class LessonsController {
   constructor(private readonly lessonsService: LessonsService) {}
 
-  // GET /lessons?unitId=1
-  @Get()
-  async getAll(@Query('unitId') unitId?: string) {
-    if (!unitId) {
-      throw new BadRequestException('Falta el parámetro unitId');
-    }
-    const parsed = Number(unitId);
-    if (Number.isNaN(parsed)) {
-      throw new BadRequestException('unitId debe ser un número');
-    }
-    return this.lessonsService.getAllLessons(parsed);
+  @Get('/units/:unitId/lessons')
+  async getLessonsByUnit(@Param('unitId', ParseIntPipe) unitId: number) {
+    return this.lessonsService.getAllLessons(unitId);
   }
 
   // GET /lessons/5
@@ -77,5 +71,47 @@ export class LessonsController {
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.lessonsService.deleteLesson(id);
+  }
+
+  // Asociar un topic a una lección
+  @Post(':lessonId/topics/:topicId')
+  async associateTopic(
+    @Param('lessonId', ParseIntPipe) lessonId: number,
+    @Param('topicId', ParseIntPipe) topicId: number,
+    @Body() body?: { order?: number },
+  ) {
+    return this.lessonsService.associateTopicToLesson(
+      lessonId,
+      topicId,
+      body?.order,
+    );
+  }
+
+  // Desasociar un topic de una lección
+  @Delete(':lessonId/topics/:topicId')
+  async dissociateTopic(
+    @Param('lessonId', ParseIntPipe) lessonId: number,
+    @Param('topicId', ParseIntPipe) topicId: number,
+  ) {
+    return this.lessonsService.dissociateTopicFromLesson(lessonId, topicId);
+  }
+
+  // Obtener todos los topics de una lección
+  @Get(':lessonId/topics')
+  async getTopicsByLesson(@Param('lessonId', ParseIntPipe) lessonId: number) {
+    return this.lessonsService.getTopicsByLesson(lessonId);
+  }
+
+  // Actualizar el orden de un topic en una lección
+  @Patch(':lessonId/topics/:topicId/order')
+  async updateTopicOrder(
+    @Param('lessonId', ParseIntPipe) lessonId: number,
+    @Param('topicId', ParseIntPipe) topicId: number,
+    @Body() body: { order: number },
+  ) {
+    if (body.order === undefined) {
+      throw new BadRequestException('El campo order es requerido');
+    }
+    return this.lessonsService.updateTopicOrder(lessonId, topicId, body.order);
   }
 }

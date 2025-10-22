@@ -19,30 +19,16 @@ describe('LessonsController', () => {
     controller = new LessonsController(service);
   });
 
-  // GET /lessons?unitId=1
-  describe('getAll', () => {
+  // GET /lessons/units/:unitId/lessons
+  describe('getLessonsByUnit', () => {
     it('retorna lecciones de una unidad cuando unitId es válido', async () => {
       const rows = [{ id: 1 }, { id: 2 }] as any[];
       service.getAllLessons.mockResolvedValue(rows);
 
-      const result = await controller.getAll('3');
+      const result = await controller.getLessonsByUnit(3);
 
       expect(service.getAllLessons).toHaveBeenCalledWith(3);
       expect(result).toBe(rows);
-    });
-
-    it('lanza BadRequest si falta unitId', async () => {
-      await expect(controller.getAll(undefined)).rejects.toThrow(
-        new BadRequestException('Falta el parámetro unitId'),
-      );
-      expect(service.getAllLessons).not.toHaveBeenCalled();
-    });
-
-    it('lanza BadRequest si unitId no es número', async () => {
-      await expect(controller.getAll('abc')).rejects.toThrow(
-        new BadRequestException('unitId debe ser un número'),
-      );
-      expect(service.getAllLessons).not.toHaveBeenCalled();
     });
   });
 

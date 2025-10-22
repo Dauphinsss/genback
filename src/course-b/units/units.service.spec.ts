@@ -31,10 +31,10 @@ describe('UnitsService', () => {
   describe('createUnit', () => {
     const payload = { title: 'Intro', courseBaseId: 1, index: 0 };
 
-    it('crea una unidad cuando el curso existe y está activo', async () => {
+    it('crea una unidad cuando el curso existe y está inactivo', async () => {
       prisma.courseBase.findUnique.mockResolvedValue({
         id: 1,
-        status: 'activo',
+        status: 'inactivo',
       });
       prisma.unit.create.mockResolvedValue({ id: 10, ...payload });
 
@@ -62,14 +62,27 @@ describe('UnitsService', () => {
       expect(prisma.unit.create).not.toHaveBeenCalled();
     });
 
-    it('lanza error si el curso no está activo', async () => {
+    it('permite crear unidades en cursos inactivos', async () => {
       prisma.courseBase.findUnique.mockResolvedValue({
         id: 1,
-        status: 'borrador',
+        status: 'inactivo',
+      });
+      prisma.unit.create.mockResolvedValue({ id: 10, ...payload });
+
+      const result = await service.createUnit(payload);
+
+      expect(prisma.unit.create).toHaveBeenCalled();
+      expect(result).toEqual({ id: 10, ...payload });
+    });
+
+    it('lanza error si el curso está activo (no se puede editar)', async () => {
+      prisma.courseBase.findUnique.mockResolvedValue({
+        id: 1,
+        status: 'activo',
       });
 
       await expect(service.createUnit(payload)).rejects.toThrow(
-        'El curso no está activo',
+        'No se puede editar un curso activo',
       );
       expect(prisma.unit.create).not.toHaveBeenCalled();
     });
@@ -120,7 +133,11 @@ describe('UnitsService', () => {
   });
 
   describe('updateUnit', () => {
-    it('actualiza el título de la unidad', async () => {
+    it('actualiza el título de la unidad si el curso está inactivo', async () => {
+      prisma.unit.findUnique.mockResolvedValue({
+        id: 5,
+        courseBase: { status: 'inactivo' },
+      });
       prisma.unit.update.mockResolvedValue({ id: 5, title: 'Nuevo título' });
 
       const result = await service.updateUnit(5, 'Nuevo título');
@@ -131,10 +148,26 @@ describe('UnitsService', () => {
       });
       expect(result).toEqual({ id: 5, title: 'Nuevo título' });
     });
+
+    it('lanza error si el curso está activo', async () => {
+      prisma.unit.findUnique.mockResolvedValue({
+        id: 5,
+        courseBase: { status: 'activo' },
+      });
+
+      await expect(service.updateUnit(5, 'Nuevo título')).rejects.toThrow(
+        'No se puede editar un curso activo',
+      );
+      expect(prisma.unit.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('deleteUnit', () => {
-    it('borra primero las lecciones y luego la unidad', async () => {
+    it('borra primero las lecciones y luego la unidad si el curso está inactivo', async () => {
+      prisma.unit.findUnique.mockResolvedValue({
+        id: 9,
+        courseBase: { status: 'inactivo' },
+      });
       prisma.lesson.deleteMany.mockResolvedValue({ count: 3 });
       prisma.unit.delete.mockResolvedValue({ id: 9 });
 
@@ -147,11 +180,17 @@ describe('UnitsService', () => {
       expect(result).toEqual({ id: 9 });
     });
 
-    it('propaga errores de Prisma al borrar', async () => {
-      prisma.lesson.deleteMany.mockResolvedValue({ count: 0 });
-      prisma.unit.delete.mockRejectedValue(new Error('DB error'));
+    it('lanza error si el curso está activo', async () => {
+      prisma.unit.findUnique.mockResolvedValue({
+        id: 9,
+        courseBase: { status: 'activo' },
+      });
 
-      await expect(service.deleteUnit(1)).rejects.toThrow('DB error');
+      await expect(service.deleteUnit(9)).rejects.toThrow(
+        'No se puede eliminar unidades de un curso activo',
+      );
+      expect(prisma.lesson.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.unit.delete).not.toHaveBeenCalled();
     });
   });
 });

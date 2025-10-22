@@ -16,7 +16,13 @@ export class UnitsService {
     });
 
     if (!course) throw new Error('Curso no encontrado');
-    if (course.status !== 'activo') throw new Error('El curso no está activo');
+
+    // REGLA: Solo se pueden editar cursos INACTIVOS
+    if (course.status === 'activo') {
+      throw new Error(
+        'No se puede editar un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
+      );
+    }
 
     return this.prisma.unit.create({
       data: {
@@ -47,6 +53,20 @@ export class UnitsService {
   }
 
   async updateUnit(unitId: number, title: string) {
+    const unit = await this.prisma.unit.findUnique({
+      where: { id: unitId },
+      include: { courseBase: true },
+    });
+
+    if (!unit) throw new Error('Unidad no encontrada');
+
+    // REGLA: Solo se pueden editar cursos INACTIVOS
+    if (unit.courseBase.status === 'activo') {
+      throw new Error(
+        'No se puede editar un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
+      );
+    }
+
     return this.prisma.unit.update({
       where: { id: unitId },
       data: { title },
@@ -54,6 +74,20 @@ export class UnitsService {
   }
 
   async deleteUnit(unitId: number) {
+    const unit = await this.prisma.unit.findUnique({
+      where: { id: unitId },
+      include: { courseBase: true },
+    });
+
+    if (!unit) throw new Error('Unidad no encontrada');
+
+    // REGLA: Solo se pueden editar cursos INACTIVOS
+    if (unit.courseBase.status === 'activo') {
+      throw new Error(
+        'No se puede eliminar unidades de un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
+      );
+    }
+
     await this.prisma.lesson.deleteMany({
       where: { unitId },
     });

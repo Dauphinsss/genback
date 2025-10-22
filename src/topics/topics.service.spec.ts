@@ -67,7 +67,11 @@ describe('TopicsService', () => {
         },
         include: {
           content: true,
-          lessonTopics: true,
+          lessonTopics: {
+            include: {
+              lesson: true,
+            },
+          },
         },
       });
       expect(result).toEqual(expectedTopic);
@@ -97,7 +101,11 @@ describe('TopicsService', () => {
         },
         include: {
           content: true,
-          lessonTopics: true,
+          lessonTopics: {
+            include: {
+              lesson: true,
+            },
+          },
         },
       });
       expect(result).toEqual(expectedTopic);
@@ -138,7 +146,15 @@ describe('TopicsService', () => {
           },
           lessonTopics: {
             include: {
-              lesson: true,
+              lesson: {
+                include: {
+                  unit: {
+                    include: {
+                      courseBase: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -174,7 +190,15 @@ describe('TopicsService', () => {
           },
           lessonTopics: {
             include: {
-              lesson: true,
+              lesson: {
+                include: {
+                  unit: {
+                    include: {
+                      courseBase: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
