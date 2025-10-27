@@ -134,7 +134,7 @@ model LessonTopic {
 
 model Content {
   id          Int      @id @default(autoincrement())
-  htmlFileUrl String? // URL del archivo HTML en GCS
+  blocksJson  Json?
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
