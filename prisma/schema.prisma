@@ -134,8 +134,8 @@ model LessonTopic {
 
 model Content {
   id          Int      @id @default(autoincrement())
-  blocksJson  Json?
   description String?
+  jsonFileUrl String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
