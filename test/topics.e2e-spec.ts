@@ -9,7 +9,6 @@ describe('Topics E2E', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let authToken: string;
-  let createdTopicId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -59,6 +58,5 @@ describe('Topics E2E', () => {
     expect(res.body).toHaveProperty('id');
     expect(res.body).toHaveProperty('name', 'Test Topic');
     expect(res.body).toHaveProperty('type', 'content');
-    createdTopicId = res.body.id;
   });
 });
