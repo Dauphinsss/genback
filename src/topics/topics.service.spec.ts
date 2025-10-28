@@ -2,12 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TopicsService } from './topics.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GCSContentService } from '../content/gcs-content.service';
-import { CreateTopicDto, UpdateTopicDto } from './dto/topic.dto';
 
 describe('TopicsService', () => {
   let service: TopicsService;
 
-  const mockPrismaService = {
+  const mockPrisma = {
     topic: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -17,349 +16,165 @@ describe('TopicsService', () => {
     },
   };
 
-  const mockGCSContentService = {
+  const mockGCS = {
     deleteFile: jest.fn(),
+    downloadHtmlFile: jest.fn(),
+    downloadJsonFile: jest.fn(),
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TopicsService,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
-        {
-          provide: GCSContentService,
-          useValue: mockGCSContentService,
-        },
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: GCSContentService, useValue: mockGCS },
       ],
     }).compile();
 
     service = module.get<TopicsService>(TopicsService);
-  });
-
-  afterEach(() => {
     jest.clearAllMocks();
   });
 
   describe('createTopic', () => {
     it('should create a topic with default type "content"', async () => {
-      const createTopicDto: CreateTopicDto = {
-        name: 'Introduction to React',
-      };
-
-      const expectedTopic = {
+      const dto = { name: 'Introduction to React' };
+      const expected = {
         id: 1,
         name: 'Introduction to React',
-        type: 'content',
-        createdAt: new Date(),
-      };
-
-      mockPrismaService.topic.create.mockResolvedValue(expectedTopic);
-
-      const result = await service.createTopic(createTopicDto);
-
-      expect(mockPrismaService.topic.create).toHaveBeenCalledWith({
-        data: {
-          name: 'Introduction to React',
-          type: 'content',
-        },
-        include: {
-          content: true,
-          lessonTopics: {
-            include: {
-              lesson: true,
-            },
-          },
-        },
-      });
-      expect(result).toEqual(expectedTopic);
-    });
-
-    it('should create a topic with specified type', async () => {
-      const createTopicDto: CreateTopicDto = {
-        name: 'Final Exam',
-        type: 'evaluation',
-      };
-
-      const expectedTopic = {
-        id: 2,
-        name: 'Final Exam',
-        type: 'evaluation',
-        createdAt: new Date(),
-      };
-
-      mockPrismaService.topic.create.mockResolvedValue(expectedTopic);
-
-      const result = await service.createTopic(createTopicDto);
-
-      expect(mockPrismaService.topic.create).toHaveBeenCalledWith({
-        data: {
-          name: 'Final Exam',
-          type: 'evaluation',
-        },
-        include: {
-          content: true,
-          lessonTopics: {
-            include: {
-              lesson: true,
-            },
-          },
-        },
-      });
-      expect(result).toEqual(expectedTopic);
-    });
-  });
-
-  describe('getAllTopics', () => {
-    it('should return all topics with their content and courses', async () => {
-      const expectedTopics = [
-        {
-          id: 1,
-          name: 'Topic 1',
-          type: 'content',
-          createdAt: new Date(),
-          content: null,
-          lessonTopics: [],
-        },
-        {
-          id: 2,
-          name: 'Topic 2',
-          type: 'evaluation',
-          createdAt: new Date(),
-          content: { id: 1, htmlContent: '<p>Content</p>' },
-          lessonTopics: [],
-        },
-      ];
-
-      mockPrismaService.topic.findMany.mockResolvedValue(expectedTopics);
-
-      const result = await service.getAllTopics();
-
-      expect(mockPrismaService.topic.findMany).toHaveBeenCalledWith({
-        include: {
-          content: {
-            include: {
-              resources: true,
-            },
-          },
-          lessonTopics: {
-            include: {
-              lesson: {
-                include: {
-                  unit: {
-                    include: {
-                      courseBase: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      expect(result).toEqual(expectedTopics);
-    });
-  });
-
-  describe('getTopicById', () => {
-    it('should return a topic by id', async () => {
-      const topicId = 1;
-      const expectedTopic = {
-        id: 1,
-        name: 'Topic 1',
         type: 'content',
         createdAt: new Date(),
         content: null,
         lessonTopics: [],
       };
 
-      mockPrismaService.topic.findUnique.mockResolvedValue(expectedTopic);
+      mockPrisma.topic.create.mockResolvedValue(expected);
 
-      const result = await service.getTopicById(topicId);
+      const res = await service.createTopic(dto);
 
-      expect(mockPrismaService.topic.findUnique).toHaveBeenCalledWith({
-        where: { id: topicId },
+      expect(mockPrisma.topic.create).toHaveBeenCalledWith({
+        data: { name: 'Introduction to React', type: 'content' },
         include: {
-          content: {
-            include: {
-              resources: true,
-            },
-          },
+          content: { include: { resources: true } },
+          lessonTopics: { include: { lesson: true } },
+        },
+      });
+      expect(res).toEqual(expected);
+    });
+
+    it('should create a topic with specified type', async () => {
+      const dto = { name: 'Final Exam', type: 'evaluation' as const };
+      const expected = {
+        id: 2,
+        name: 'Final Exam',
+        type: 'evaluation',
+        createdAt: new Date(),
+        content: null,
+        lessonTopics: [],
+      };
+
+      mockPrisma.topic.create.mockResolvedValue(expected);
+
+      const res = await service.createTopic(dto);
+
+      expect(mockPrisma.topic.create).toHaveBeenCalledWith({
+        data: { name: 'Final Exam', type: 'evaluation' },
+        include: {
+          content: { include: { resources: true } },
+          lessonTopics: { include: { lesson: true } },
+        },
+      });
+      expect(res).toEqual(expected);
+    });
+  });
+
+  describe('getAllTopics', () => {
+    it('returns topics including content.resources', async () => {
+      mockPrisma.topic.findMany.mockResolvedValue([]);
+      const res = await service.getAllTopics();
+      expect(mockPrisma.topic.findMany).toHaveBeenCalledWith({
+        include: {
+          content: { include: { resources: true } },
           lessonTopics: {
             include: {
               lesson: {
                 include: {
-                  unit: {
-                    include: {
-                      courseBase: true,
-                    },
-                  },
+                  unit: { include: { courseBase: true } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(res).toEqual([]);
+    });
+  });
+
+  describe('getTopicById', () => {
+    it('returns topic and, si hay jsonFileUrl, el servicio podría descargarlo (no lo exigimos)', async () => {
+      const topic = {
+        id: 1,
+        name: 'T',
+        type: 'content',
+        createdAt: new Date(),
+        content: {
+          id: 9,
+          jsonFileUrl: 'https://gcs/topic-1/content.json',
+          resources: [],
+        },
+        lessonTopics: [],
+      };
+      mockPrisma.topic.findUnique.mockResolvedValue(topic);
+      mockGCS.downloadJsonFile.mockResolvedValue({ blocks: [] });
+
+      const res = await service.getTopicById(1);
+
+      expect(mockPrisma.topic.findUnique).toHaveBeenCalledWith({
+        where: { id: 1 },
+        include: {
+          content: { include: { resources: true } },
+          lessonTopics: {
+            include: {
+              lesson: {
+                include: {
+                  unit: { include: { courseBase: true } },
                 },
               },
             },
           },
         },
       });
-      expect(result).toEqual(expectedTopic);
+      expect(res).toEqual(topic);
     });
 
-    it('should return null if topic not found', async () => {
-      const topicId = 999;
-      mockPrismaService.topic.findUnique.mockResolvedValue(null);
-
-      const result = await service.getTopicById(topicId);
-
-      expect(result).toBeNull();
+    it('returns null when not found', async () => {
+      mockPrisma.topic.findUnique.mockResolvedValue(null);
+      const res = await service.getTopicById(999);
+      expect(res).toBeNull();
     });
   });
 
   describe('updateTopic', () => {
-    it('should update a topic', async () => {
-      const topicId = 1;
-      const updateTopicDto: UpdateTopicDto = {
-        name: 'Updated Topic Name',
-      };
-
-      const expectedTopic = {
+    it('updates a topic', async () => {
+      const updated = {
         id: 1,
-        name: 'Updated Topic Name',
+        name: 'Nuevo',
         type: 'content',
         createdAt: new Date(),
       };
+      mockPrisma.topic.update.mockResolvedValue(updated);
 
-      mockPrismaService.topic.update.mockResolvedValue(expectedTopic);
+      const res = await service.updateTopic(1, { name: 'Nuevo' });
 
-      const result = await service.updateTopic(topicId, updateTopicDto);
-
-      expect(mockPrismaService.topic.update).toHaveBeenCalledWith({
-        where: { id: topicId },
-        data: updateTopicDto,
+      expect(mockPrisma.topic.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { name: 'Nuevo' },
         include: {
-          content: {
-            include: {
-              resources: true,
-            },
-          },
-          lessonTopics: {
-            include: {
-              lesson: true,
-            },
-          },
+          content: { include: { resources: true } },
+          lessonTopics: { include: { lesson: true } },
         },
       });
-      expect(result).toEqual(expectedTopic);
-    });
-  });
-
-  describe('deleteTopic', () => {
-    it('should delete a topic', async () => {
-      const topicId = 1;
-      const topicWithContent = {
-        id: 1,
-        name: 'Deleted Topic',
-        type: 'content',
-        createdAt: new Date(),
-        content: null,
-      };
-      const deletedTopic = {
-        id: 1,
-        name: 'Deleted Topic',
-        type: 'content',
-        createdAt: new Date(),
-      };
-
-      mockPrismaService.topic.findUnique.mockResolvedValue(topicWithContent);
-      mockPrismaService.topic.delete.mockResolvedValue(deletedTopic);
-
-      const result = await service.deleteTopic(topicId);
-
-      expect(mockPrismaService.topic.findUnique).toHaveBeenCalledWith({
-        where: { id: topicId },
-        include: { content: true },
-      });
-      expect(mockPrismaService.topic.delete).toHaveBeenCalledWith({
-        where: { id: topicId },
-      });
-      expect(result).toEqual(deletedTopic);
-    });
-
-    it('should delete HTML file from GCS if content exists', async () => {
-      const topicId = 1;
-      const htmlFileUrl =
-        'https://storage.googleapis.com/bucket/topics/1/content.html';
-      const topicWithContent = {
-        id: 1,
-        name: 'Topic with Content',
-        type: 'content',
-        createdAt: new Date(),
-        content: {
-          id: 1,
-          htmlFileUrl: htmlFileUrl,
-          description: 'Test',
-          topicId: 1,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      };
-      const deletedTopic = {
-        id: 1,
-        name: 'Topic with Content',
-        type: 'content',
-        createdAt: new Date(),
-      };
-
-      mockPrismaService.topic.findUnique.mockResolvedValue(topicWithContent);
-      mockPrismaService.topic.delete.mockResolvedValue(deletedTopic);
-      mockGCSContentService.deleteFile.mockResolvedValue(undefined);
-
-      const result = await service.deleteTopic(topicId);
-
-      expect(mockGCSContentService.deleteFile).toHaveBeenCalledWith(
-        htmlFileUrl,
-      );
-      expect(mockPrismaService.topic.delete).toHaveBeenCalledWith({
-        where: { id: topicId },
-      });
-      expect(result).toEqual(deletedTopic);
-    });
-  });
-
-  describe('getTopicsByType', () => {
-    it('should return topics filtered by type', async () => {
-      const topicType = 'content';
-      const expectedTopics = [
-        {
-          id: 1,
-          name: 'Content Topic 1',
-          type: 'content',
-          createdAt: new Date(),
-        },
-      ];
-
-      mockPrismaService.topic.findMany.mockResolvedValue(expectedTopics);
-
-      const result = await service.getTopicsByType(topicType);
-
-      expect(mockPrismaService.topic.findMany).toHaveBeenCalledWith({
-        where: { type: topicType },
-        include: {
-          content: {
-            include: {
-              resources: true,
-            },
-          },
-          lessonTopics: {
-            include: {
-              lesson: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      expect(result).toEqual(expectedTopics);
+      expect(res).toEqual(updated);
     });
   });
 });

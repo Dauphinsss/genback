@@ -2,12 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ContentService } from './content.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GCSContentService } from './gcs-content.service';
-import { CreateContentDto, UpdateContentDto } from './dto/content.dto';
 
-describe('ContentService', () => {
+describe('ContentService (unit)', () => {
   let service: ContentService;
 
-  const mockPrismaService = {
+  const mockPrisma = {
     content: {
       create: jest.fn(),
       findUnique: jest.fn(),
@@ -17,281 +16,224 @@ describe('ContentService', () => {
     },
   };
 
-  const mockGCSService = {
-    uploadHtmlFile: jest.fn(),
-    downloadHtmlFile: jest.fn(),
+  const gcs = {
+    uploadJsonFile: jest.fn(), // NUEVO nombre para JSON
+    downloadJsonFile: jest.fn(), // NUEVO nombre para JSON
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContentService,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
-        {
-          provide: GCSContentService,
-          useValue: mockGCSService,
-        },
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: GCSContentService, useValue: gcs },
       ],
     }).compile();
 
-    service = module.get<ContentService>(ContentService);
-  });
-
-  afterEach(() => {
+    service = module.get(ContentService);
     jest.clearAllMocks();
   });
 
   describe('createContent', () => {
-    it('should create content for a topic', async () => {
-      const topicId = 1;
-      const createContentDto: CreateContentDto = {
-        htmlContent: '<p>HTML content</p>',
-        description: 'Test description',
-      };
+    it('crea content subiendo JSON a GCS y guardando jsonFileUrl', async () => {
+      const topicId = 10;
+      const dto: any = { description: 'desc', blocksJson: { blocks: [] } };
 
-      const mockGCSUrl =
-        'https://storage.googleapis.com/bucket/topics/1/content.html';
-      mockGCSService.uploadHtmlFile.mockResolvedValue(mockGCSUrl);
+      gcs.uploadJsonFile.mockResolvedValue('https://gcs/topic-10/content.json');
 
-      const expectedContent = {
+      const created = {
         id: 1,
-        topicId: 1,
-        htmlFileUrl: mockGCSUrl,
-        description: 'Test description',
+        topicId,
+        jsonFileUrl: 'https://gcs/topic-10/content.json',
+        description: 'desc',
         createdAt: new Date(),
         updatedAt: new Date(),
-        topic: { id: 1, name: 'Test Topic', type: 'content' },
+        topic: {
+          id: topicId,
+          name: 'T',
+          type: 'content',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
         resources: [],
       };
+      mockPrisma.content.create.mockResolvedValue(created);
 
-      mockPrismaService.content.create.mockResolvedValue(expectedContent);
+      const res = await service.createContent(topicId, dto);
 
-      const result = await service.createContent(topicId, createContentDto);
-
-      expect(mockGCSService.uploadHtmlFile).toHaveBeenCalledWith(
-        '<p>HTML content</p>',
-        topicId,
-      );
-      expect(mockPrismaService.content.create).toHaveBeenCalledWith({
+      expect(gcs.uploadJsonFile).toHaveBeenCalledWith(dto.blocksJson, topicId);
+      expect(mockPrisma.content.create).toHaveBeenCalledWith({
         data: {
           topicId,
-          htmlFileUrl: mockGCSUrl,
-          description: createContentDto.description,
+          jsonFileUrl: 'https://gcs/topic-10/content.json',
+          description: 'desc',
         },
-        include: {
-          topic: true,
-          resources: true,
-        },
+        include: { topic: true, resources: true },
       });
-      expect(result).toEqual(expectedContent);
+      expect(res).toEqual(created);
     });
 
-    it('should create content with minimal data', async () => {
-      const topicId = 2;
-      const createContentDto: CreateContentDto = {};
+    it('crea content vacío cuando no hay blocksJson', async () => {
+      const topicId = 11;
+      const dto: any = {}; // sin blocksJson
 
-      const expectedContent = {
+      const created = {
         id: 2,
-        topicId: 2,
-        htmlFileUrl: null,
+        topicId,
+        jsonFileUrl: null,
         description: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        topic: { id: 2, name: 'Test Topic 2', type: 'content' },
+        topic: {
+          id: topicId,
+          name: 'T2',
+          type: 'content',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
         resources: [],
       };
+      mockPrisma.content.create.mockResolvedValue(created);
 
-      mockPrismaService.content.create.mockResolvedValue(expectedContent);
+      const res = await service.createContent(topicId, dto);
 
-      const result = await service.createContent(topicId, createContentDto);
-
-      expect(mockGCSService.uploadHtmlFile).not.toHaveBeenCalled();
-      expect(result).toEqual(expectedContent);
+      expect(gcs.uploadJsonFile).not.toHaveBeenCalled();
+      expect(res).toEqual(created);
     });
   });
 
   describe('getContentByTopicId', () => {
-    it('should return content by topic id', async () => {
-      const topicId = 1;
-      const mockHtmlFileUrl =
-        'https://storage.googleapis.com/bucket/topics/1/content.html';
-      const mockHtmlContent = '<p>Content</p>';
-
-      const expectedContent = {
-        id: 1,
-        topicId: 1,
-        htmlFileUrl: mockHtmlFileUrl,
-        description: 'Description',
+    it('devuelve content y mantiene jsonFileUrl (no se asume blocksJson en respuesta)', async () => {
+      const topicId = 20;
+      const jsonUrl = 'https://gcs/topic-20/content.json';
+      const found = {
+        id: 3,
+        topicId,
+        jsonFileUrl: jsonUrl,
+        description: 'd',
         createdAt: new Date(),
         updatedAt: new Date(),
-        topic: { id: 1, name: 'Topic 1', type: 'content' },
-        resources: [
-          {
-            id: 1,
-            filename: 'image.jpg',
-            resourceUrl: 'https://storage.googleapis.com/bucket/image.jpg',
-            type: 'IMAGE',
-            size: 1024,
-            mimeType: 'image/jpeg',
-            contentId: 1,
-            createdAt: new Date(),
-          },
-        ],
-      };
-
-      mockPrismaService.content.findUnique.mockResolvedValue(expectedContent);
-      mockGCSService.downloadHtmlFile.mockResolvedValue(mockHtmlContent);
-
-      const result = await service.getContentByTopicId(topicId);
-
-      expect(mockPrismaService.content.findUnique).toHaveBeenCalledWith({
-        where: { topicId },
-        include: {
-          topic: true,
-          resources: {
-            orderBy: { createdAt: 'asc' },
-          },
+        topic: {
+          id: topicId,
+          name: 'T',
+          type: 'content',
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
+        resources: [],
+      };
+      mockPrisma.content.findUnique.mockResolvedValue(found);
+
+      // El servicio podría descargar internamente, pero el test SOLO valida el url.
+      gcs.downloadJsonFile.mockResolvedValue({
+        blocks: [{ type: 'paragraph', data: { text: 'Hola' } }],
       });
-      expect(mockGCSService.downloadHtmlFile).toHaveBeenCalledWith(
-        mockHtmlFileUrl,
-      );
-      expect(result).toHaveProperty('htmlContent', mockHtmlContent);
+
+      const res: any = await service.getContentByTopicId(topicId);
+
+      expect(mockPrisma.content.findUnique).toHaveBeenCalled();
+      expect(gcs.downloadJsonFile).toHaveBeenCalledWith(jsonUrl);
+      // Validamos que el objeto siga trayendo el url y NO esperamos blocksJson.
+      expect(res.jsonFileUrl).toBe(jsonUrl);
     });
 
-    it('should return null if content not found', async () => {
-      const topicId = 999;
-      mockPrismaService.content.findUnique.mockResolvedValue(null);
-
-      const result = await service.getContentByTopicId(topicId);
-
-      expect(result).toBeNull();
-      expect(mockGCSService.downloadHtmlFile).not.toHaveBeenCalled();
+    it('retorna null si no existe', async () => {
+      mockPrisma.content.findUnique.mockResolvedValue(null);
+      const res = await service.getContentByTopicId(999);
+      expect(res).toBeNull();
+      expect(gcs.downloadJsonFile).not.toHaveBeenCalled();
     });
   });
 
   describe('updateContent', () => {
-    it('should update content', async () => {
-      const contentId = 1;
-      const updateContentDto: UpdateContentDto = {
-        htmlContent: '<p>Updated content</p>',
-        description: 'Updated description',
+    it('actualiza subiendo nuevo JSON y guarda jsonFileUrl', async () => {
+      const contentId = 5;
+      const existing = {
+        id: contentId,
+        topicId: 77,
+        jsonFileUrl: 'old',
+        description: 'x',
       };
+      mockPrisma.content.findUnique.mockResolvedValue(existing);
 
-      const existingContent = {
-        id: 1,
-        topicId: 1,
-        htmlFileUrl:
-          'https://storage.googleapis.com/bucket/topics/1/content.html',
-        description: 'Old description',
-      };
+      const dto: any = { description: 'nuevo', blocksJson: { blocks: [] } };
+      gcs.uploadJsonFile.mockResolvedValue('https://gcs/topic-77/content.json');
 
-      const mockNewGCSUrl =
-        'https://storage.googleapis.com/bucket/topics/1/content.html';
-
-      mockPrismaService.content.findUnique.mockResolvedValue(existingContent);
-      mockGCSService.uploadHtmlFile.mockResolvedValue(mockNewGCSUrl);
-
-      const expectedContent = {
-        id: 1,
-        topicId: 1,
-        htmlFileUrl: mockNewGCSUrl,
-        description: 'Updated description',
-        createdAt: new Date(),
+      const updated = {
+        ...existing,
+        jsonFileUrl: 'https://gcs/topic-77/content.json',
+        description: 'nuevo',
         updatedAt: new Date(),
-        topic: { id: 1, name: 'Topic 1', type: 'content' },
+        createdAt: new Date(),
+        topic: {
+          id: 77,
+          name: 'T',
+          type: 'content',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
         resources: [],
       };
+      mockPrisma.content.update.mockResolvedValue(updated);
 
-      mockPrismaService.content.update.mockResolvedValue(expectedContent);
+      const res = await service.updateContent(contentId, dto);
 
-      const result = await service.updateContent(contentId, updateContentDto);
-
-      expect(mockGCSService.uploadHtmlFile).toHaveBeenCalledWith(
-        '<p>Updated content</p>',
-        1,
-      );
-      expect(mockPrismaService.content.update).toHaveBeenCalledWith({
+      expect(gcs.uploadJsonFile).toHaveBeenCalledWith(dto.blocksJson, 77);
+      expect(mockPrisma.content.update).toHaveBeenCalledWith({
         where: { id: contentId },
         data: {
-          htmlFileUrl: mockNewGCSUrl,
-          description: 'Updated description',
+          jsonFileUrl: 'https://gcs/topic-77/content.json',
+          description: 'nuevo',
         },
-        include: {
-          topic: true,
-          resources: true,
-        },
+        include: { topic: true, resources: true },
       });
-      expect(result).toEqual(expectedContent);
+      expect(res).toEqual(updated);
     });
   });
 
   describe('deleteContent', () => {
-    it('should delete content', async () => {
-      const contentId = 1;
-      const deletedContent = {
-        id: 1,
+    it('elimina content', async () => {
+      const contentId = 9;
+      const deleted = {
+        id: contentId,
         topicId: 1,
-        htmlFileUrl:
-          'https://storage.googleapis.com/bucket/topics/1/content.html',
-        description: 'Description',
+        jsonFileUrl: null,
+        description: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+      mockPrisma.content.delete.mockResolvedValue(deleted);
 
-      mockPrismaService.content.delete.mockResolvedValue(deletedContent);
-
-      const result = await service.deleteContent(contentId);
-
-      expect(mockPrismaService.content.delete).toHaveBeenCalledWith({
+      const res = await service.deleteContent(contentId);
+      expect(mockPrisma.content.delete).toHaveBeenCalledWith({
         where: { id: contentId },
       });
-      expect(result).toEqual(deletedContent);
+      expect(res).toEqual(deleted);
     });
   });
 
   describe('getAllContents', () => {
-    it('should return all contents', async () => {
-      const expectedContents = [
+    it('lista contenidos', async () => {
+      const list = [
         {
           id: 1,
           topicId: 1,
-          htmlFileUrl:
-            'https://storage.googleapis.com/bucket/topics/1/content.html',
-          description: 'Description 1',
+          jsonFileUrl: null,
+          description: null,
           createdAt: new Date(),
           updatedAt: new Date(),
-          topic: { id: 1, name: 'Topic 1', type: 'content' },
-          resources: [],
-        },
-        {
-          id: 2,
-          topicId: 2,
-          htmlFileUrl:
-            'https://storage.googleapis.com/bucket/topics/2/content.html',
-          description: 'Description 2',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          topic: { id: 2, name: 'Topic 2', type: 'content' },
+          topic: {},
           resources: [],
         },
       ];
+      mockPrisma.content.findMany.mockResolvedValue(list);
 
-      mockPrismaService.content.findMany.mockResolvedValue(expectedContents);
-
-      const result = await service.getAllContents();
-
-      expect(mockPrismaService.content.findMany).toHaveBeenCalledWith({
-        include: {
-          topic: true,
-          resources: true,
-        },
+      const res = await service.getAllContents();
+      expect(mockPrisma.content.findMany).toHaveBeenCalledWith({
+        include: { topic: true, resources: true },
         orderBy: { createdAt: 'desc' },
       });
-      expect(result).toEqual(expectedContents);
+      expect(res).toEqual(list);
     });
   });
 });

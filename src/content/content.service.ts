@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateContentDto, UpdateContentDto } from './dto/content.dto';
 import { GCSContentService } from './gcs-content.service';
+import { CreateContentDto, UpdateContentDto } from './dto/content.dto';
 
 @Injectable()
 export class ContentService {
@@ -10,13 +10,12 @@ export class ContentService {
     private gcsService: GCSContentService,
   ) {}
 
-  async createContent(topicId: number, createContentDto: CreateContentDto) {
-    let htmlFileUrl: string | undefined;
+  async createContent(topicId: number, dto: CreateContentDto) {
+    let jsonFileUrl: string | undefined;
 
-    // Si hay contenido HTML, subirlo a GCS
-    if (createContentDto.htmlContent) {
-      htmlFileUrl = await this.gcsService.uploadHtmlFile(
-        createContentDto.htmlContent,
+    if (dto.blocksJson) {
+      jsonFileUrl = await this.gcsService.uploadJsonFile(
+        dto.blocksJson,
         topicId,
       );
     }
@@ -24,8 +23,8 @@ export class ContentService {
     return this.prisma.content.create({
       data: {
         topicId,
-        htmlFileUrl,
-        description: createContentDto.description,
+        jsonFileUrl,
+        description: dto.description,
       },
       include: {
         topic: true,
@@ -39,46 +38,40 @@ export class ContentService {
       where: { topicId },
       include: {
         topic: true,
-        resources: {
-          orderBy: { createdAt: 'asc' },
-        },
+        resources: { orderBy: { createdAt: 'asc' } },
       },
     });
 
-    // Si existe URL de HTML, descargar el contenido
-    if (content?.htmlFileUrl) {
-      const htmlContent = await this.gcsService.downloadHtmlFile(
-        content.htmlFileUrl,
+    if (content?.jsonFileUrl) {
+      const jsonData = await this.gcsService.downloadJsonFile(
+        content.jsonFileUrl,
       );
-      return {
-        ...content,
-        htmlContent, // Agregar el HTML descargado
-      };
+      return { ...content, blocksJson: jsonData };
     }
 
     return content;
   }
 
-  async updateContent(contentId: number, updateContentDto: UpdateContentDto) {
-    const existingContent = await this.prisma.content.findUnique({
+  async updateContent(contentId: number, dto: UpdateContentDto) {
+    const existing = await this.prisma.content.findUnique({
       where: { id: contentId },
     });
+    if (!existing) throw new NotFoundException('Content no encontrado');
 
-    let htmlFileUrl = existingContent?.htmlFileUrl;
+    let jsonFileUrl = existing.jsonFileUrl;
 
-    // Si hay nuevo contenido HTML, actualizarlo en GCS
-    if (updateContentDto.htmlContent && existingContent) {
-      htmlFileUrl = await this.gcsService.uploadHtmlFile(
-        updateContentDto.htmlContent,
-        existingContent.topicId,
+    if (dto.blocksJson) {
+      jsonFileUrl = await this.gcsService.uploadJsonFile(
+        dto.blocksJson,
+        existing.topicId,
       );
     }
 
     return this.prisma.content.update({
       where: { id: contentId },
       data: {
-        htmlFileUrl,
-        description: updateContentDto.description,
+        jsonFileUrl,
+        description: dto.description,
       },
       include: {
         topic: true,
@@ -88,18 +81,12 @@ export class ContentService {
   }
 
   async deleteContent(contentId: number) {
-    // Los resources se eliminan automáticamente por la cascada
-    return this.prisma.content.delete({
-      where: { id: contentId },
-    });
+    return this.prisma.content.delete({ where: { id: contentId } });
   }
 
   async getAllContents() {
     return this.prisma.content.findMany({
-      include: {
-        topic: true,
-        resources: true,
-      },
+      include: { topic: true, resources: true },
       orderBy: { createdAt: 'desc' },
     });
   }

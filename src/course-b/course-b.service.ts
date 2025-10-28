@@ -210,7 +210,7 @@ export class CourseBService {
             content: originalTopic.content
               ? {
                   create: {
-                    htmlFileUrl: originalTopic.content.htmlFileUrl,
+                    jsonFileUrl: originalTopic.content.jsonFileUrl,
                     description: originalTopic.content.description,
                     resources: {
                       create: originalTopic.content.resources.map(

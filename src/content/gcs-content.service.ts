@@ -16,10 +16,10 @@ export class GCSContentService {
     contentId: number,
   ): Promise<string> {
     const ext = path.extname(file.originalname);
-    const sanitizedName = this.sanitizeFilename(
+    const sanitized = this.sanitizeFilename(
       path.basename(file.originalname, ext),
     );
-    const gcsFileName = `content/${contentId}/${sanitizedName}_${uuidv4()}${ext}`;
+    const gcsFileName = `content/${contentId}/${sanitized}_${uuidv4()}${ext}`;
 
     const bucket = this.storage.bucket(this.bucketName);
     const blob = bucket.file(gcsFileName);
@@ -31,13 +31,11 @@ export class GCSContentService {
 
     return `https://storage.googleapis.com/${this.bucketName}/${gcsFileName}`;
   }
+
   async deleteFile(fileUrl: string): Promise<void> {
     try {
       const fileName = this.extractFileNameFromUrl(fileUrl);
-      if (!fileName) {
-        throw new Error('Invalid file URL');
-      }
-
+      if (!fileName) throw new Error('Invalid file URL');
       const bucket = this.storage.bucket(this.bucketName);
       await bucket.file(fileName).delete();
     } catch (error) {
@@ -49,22 +47,19 @@ export class GCSContentService {
     const match = url.match(/storage\.googleapis\.com\/[^/]+\/(.+)/);
     return match ? match[1] : null;
   }
+
   private sanitizeFilename(filename: string): string {
     return filename
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remover acentos
-      .replace(/[^a-zA-Z0-9-_]/g, '_') // Reemplazar caracteres especiales
-      .substring(0, 50); // Limitar longitud
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9-_]/g, '_')
+      .substring(0, 50);
   }
 
-  /**
-   * Verificar si un archivo existe en GCS
-   */
   async fileExists(fileUrl: string): Promise<boolean> {
     try {
       const fileName = this.extractFileNameFromUrl(fileUrl);
       if (!fileName) return false;
-
       const bucket = this.storage.bucket(this.bucketName);
       const [exists] = await bucket.file(fileName).exists();
       return exists;
@@ -74,40 +69,35 @@ export class GCSContentService {
   }
 
   /**
-   * Subir archivo HTML al GCS
+   * Subir archivo JSON (blocksJson) al bucket
    */
-  async uploadHtmlFile(htmlContent: string, topicId: number): Promise<string> {
-    const gcsFileName = `topics/${topicId}/content.html`;
+  async uploadJsonFile(blocksJson: any, topicId: number): Promise<string> {
+    const gcsFileName = `topics/${topicId}/content.json`;
     const bucket = this.storage.bucket(this.bucketName);
     const blob = bucket.file(gcsFileName);
 
-    await blob.save(htmlContent, {
-      contentType: 'text/html',
-      metadata: {
-        cacheControl: 'no-cache',
-      },
+    await blob.save(JSON.stringify(blocksJson, null, 2), {
+      contentType: 'application/json',
+      metadata: { cacheControl: 'no-cache' },
     });
 
     return `https://storage.googleapis.com/${this.bucketName}/${gcsFileName}`;
   }
 
   /**
-   * Obtener contenido HTML desde GCS
+   * Descargar el JSON del bucket
    */
-  async downloadHtmlFile(fileUrl: string): Promise<string> {
+  async downloadJsonFile(fileUrl: string): Promise<any> {
     try {
       const fileName = this.extractFileNameFromUrl(fileUrl);
-      if (!fileName) {
-        throw new Error('Invalid file URL');
-      }
+      if (!fileName) throw new Error('Invalid file URL');
 
       const bucket = this.storage.bucket(this.bucketName);
       const file = bucket.file(fileName);
       const [contents] = await file.download();
-
-      return contents.toString('utf-8');
+      return JSON.parse(contents.toString('utf-8'));
     } catch (error) {
-      console.error('Error downloading HTML from GCS:', error);
+      console.error('Error descargando JSON desde GCS:', error);
       throw error;
     }
   }

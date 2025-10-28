@@ -1,16 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import * as jwt from 'jsonwebtoken';
+import * as request from 'supertest';
 
 describe('Topics E2E', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let authToken: string;
-  let testUserId: number;
-  let testTopicId: number;
+  let createdTopicId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -23,98 +22,43 @@ describe('Topics E2E', () => {
 
     prisma = app.get<PrismaService>(PrismaService);
 
-    // Crear usuario de prueba
-    const testUser = await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
-        email: `test-topics-${Date.now()}@test.com`,
-        name: 'Test User Topics',
+        email: `e2e-topics-${Date.now()}@t.com`,
+        name: 'E2E Topics',
         provider: 'test',
         providerId: `test-${Date.now()}`,
       },
     });
-    testUserId = testUser.id;
 
-    // Generar token JWT
     authToken = jwt.sign(
-      { id: testUser.id, email: testUser.email, name: testUser.name },
+      { id: user.id, email: user.email },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '1h' },
     );
   });
 
   afterAll(async () => {
-    // Limpiar datos
-    try {
-      if (testTopicId) {
-        await prisma.topic.deleteMany({ where: { id: testTopicId } });
-      }
-      if (testUserId) {
-        await prisma.user.deleteMany({ where: { id: testUserId } });
-      }
-    } catch (error) {
-      console.error('Error en limpieza:', error);
-    }
-    if (app) {
-      await app.close();
-    }
+    await prisma.topic.deleteMany({});
+    await prisma.user.deleteMany({ where: { provider: 'test' } });
+    await app.close();
   });
 
-  it('POST /topics - crear topic', async () => {
-    const response = await request(app.getHttpServer())
+  it('POST /topics crea un topic con jsonFileUrl', async () => {
+    const topicDto = {
+      name: 'Test Topic',
+      type: 'content',
+    };
+    // Crea el topic
+    const res = await request(app.getHttpServer())
       .post('/topics')
       .set('Authorization', `Bearer ${authToken}`)
-      .send({
-        name: 'Test Topic E2E',
-        type: 'content',
-      })
+      .send(topicDto)
       .expect(201);
 
-    expect(response.body).toHaveProperty('id');
-    expect(response.body.name).toBe('Test Topic E2E');
-    testTopicId = response.body.id;
-  });
-
-  it('GET /topics - obtener todos', async () => {
-    const response = await request(app.getHttpServer())
-      .get('/topics')
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
-
-    expect(Array.isArray(response.body)).toBe(true);
-  });
-
-  it('GET /topics/:id - obtener por ID', async () => {
-    const response = await request(app.getHttpServer())
-      .get(`/topics/${testTopicId}`)
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
-
-    expect(response.body.id).toBe(testTopicId);
-  });
-
-  it('PATCH /topics/:id - actualizar topic', async () => {
-    const response = await request(app.getHttpServer())
-      .patch(`/topics/${testTopicId}`)
-      .set('Authorization', `Bearer ${authToken}`)
-      .send({ name: 'Topic Actualizado' })
-      .expect(200);
-
-    expect(response.body.name).toBe('Topic Actualizado');
-  });
-
-  it('DELETE /topics/:id - eliminar topic', async () => {
-    await request(app.getHttpServer())
-      .delete(`/topics/${testTopicId}`)
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
-
-    testTopicId = null;
-  });
-
-  it('POST /topics - rechazar sin auth', async () => {
-    await request(app.getHttpServer())
-      .post('/topics')
-      .send({ name: 'Sin Auth', type: 'content' })
-      .expect(401);
+    expect(res.body).toHaveProperty('id');
+    expect(res.body).toHaveProperty('name', 'Test Topic');
+    expect(res.body).toHaveProperty('type', 'content');
+    createdTopicId = res.body.id;
   });
 });

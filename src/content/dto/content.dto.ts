@@ -1,21 +1,21 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsObject } from 'class-validator';
 
 export class CreateContentDto {
   @IsOptional()
   @IsString()
-  htmlContent?: string;
+  description?: string;
 
   @IsOptional()
-  @IsString()
-  description?: string;
+  @IsObject()
+  blocksJson?: any;
 }
 
 export class UpdateContentDto {
   @IsOptional()
   @IsString()
-  htmlContent?: string;
+  description?: string;
 
   @IsOptional()
-  @IsString()
-  description?: string;
+  @IsObject()
+  blocksJson?: any;
 }

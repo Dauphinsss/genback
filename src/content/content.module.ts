@@ -10,42 +10,29 @@ import { PrismaModule } from '../prisma/prisma.module';
   imports: [
     PrismaModule,
     MulterModule.register({
-      storage: undefined, // Usar memoria
-      limits: {
-        fileSize: 50 * 1024 * 1024, // 50MB para videos
-      },
+      storage: undefined,
+      limits: { fileSize: 50 * 1024 * 1024 },
       fileFilter: (req, file, callback) => {
-        // Bloquear imágenes (deben ir en base64 en el HTML)
+        // Por ahora, bloqueamos imágenes como recursos independientes
         if (file.mimetype.startsWith('image/')) {
-          callback(
-            new Error(
-              'Las imágenes deben ir embebidas en base64 dentro del HTML. No se permite subir imágenes como recursos.',
-            ),
-            false,
-          );
+          callback(new Error('No se permite subir imágenes por ahora'), false);
           return;
         }
 
-        const allowedMimeTypes = [
-          // Videos
+        const allowed = [
           'video/mp4',
           'video/webm',
           'video/avi',
-          // Audios
           'audio/mp3',
           'audio/wav',
           'audio/ogg',
-          // Documentos
           'application/pdf',
           'application/msword',
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ];
 
-        if (allowedMimeTypes.includes(file.mimetype)) {
-          callback(null, true);
-        } else {
-          callback(new Error('Tipo de archivo no permitido'), false);
-        }
+        if (allowed.includes(file.mimetype)) callback(null, true);
+        else callback(new Error('Tipo de archivo no permitido'), false);
       },
     }),
   ],

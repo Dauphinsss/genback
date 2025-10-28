@@ -14,30 +14,20 @@ export class ResourceService {
   ) {}
 
   async uploadResource(file: Express.Multer.File, contentId: number) {
-    // Validar que el content existe
     const content = await this.prisma.content.findUnique({
       where: { id: contentId },
     });
+    if (!content) throw new NotFoundException('Content no encontrado');
 
-    if (!content) {
-      throw new NotFoundException('Content no encontrado');
-    }
-
-    // Bloquear subida de imágenes (ahora deben ir en base64 en el HTML)
+    // Por ahora bloqueamos imágenes como recursos independientes
     if (file.mimetype.startsWith('image/')) {
-      throw new BadRequestException(
-        'Las imágenes deben ir embebidas en base64 dentro del HTML. No se permite subir imágenes como recursos independientes.',
-      );
+      throw new BadRequestException('No se permite subir imágenes por ahora');
     }
 
-    // Subir a Google Cloud Storage
     const resourceUrl = await this.gcsService.uploadFile(file, contentId);
-
-    // Determinar tipo de recurso
     const resourceType = this.getResourceType(file.mimetype);
 
-    // Guardar en base de datos
-    const resource = await this.prisma.resource.create({
+    return this.prisma.resource.create({
       data: {
         filename: file.originalname,
         resourceUrl,
@@ -52,8 +42,6 @@ export class ResourceService {
         contentId,
       },
     });
-
-    return resource;
   }
 
   async getResourcesByContentId(contentId: number) {
@@ -67,18 +55,11 @@ export class ResourceService {
     const resource = await this.prisma.resource.findUnique({
       where: { id: resourceId },
     });
+    if (!resource) throw new NotFoundException('Resource no encontrado');
 
-    if (!resource) {
-      throw new NotFoundException('Resource no encontrado');
-    }
-
-    // Eliminar de Google Cloud Storage
     await this.gcsService.deleteFile(resource.resourceUrl);
 
-    // Eliminar de base de datos
-    return this.prisma.resource.delete({
-      where: { id: resourceId },
-    });
+    return this.prisma.resource.delete({ where: { id: resourceId } });
   }
 
   private getResourceType(mimetype: string): string {
