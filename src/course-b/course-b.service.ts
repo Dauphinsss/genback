@@ -5,7 +5,26 @@ import { PrismaService } from '../prisma/prisma.service';
 export class CourseBService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createCourse(title: string, status: 'activo' | 'inactivo' = 'activo') {
+  async createCourse(
+    title: string,
+    status: 'activo' | 'inactivo' | 'historico' = 'activo',
+  ) {
+    if (status === 'inactivo') {
+      const existingInactive = await this.prisma.courseBase.findFirst({
+        where: { status: 'inactivo' },
+      });
+      if (existingInactive) {
+        throw new Error('Ya existe un curso inactivo. No se puede crear otro.');
+      }
+    }
+    if (status === 'activo') {
+      const existingActive = await this.prisma.courseBase.findFirst({
+        where: { status: 'activo' },
+      });
+      if (existingActive) {
+        throw new Error('Ya existe un curso activo. No se puede crear otro.');
+      }
+    }
     return this.prisma.courseBase.create({
       data: { title, status },
     });
@@ -24,8 +43,16 @@ export class CourseBService {
   }
 
   //GET /courses?status=activo|inactivo
-  async getByStatus(status: 'activo' | 'inactivo') {
+  async getByStatus(status: 'activo' | 'inactivo' | 'historico') {
     return this.prisma.courseBase.findMany({ where: { status } });
+  }
+
+  async getInactiveCourse() {
+    return this.prisma.courseBase.findFirst({ where: { status: 'inactivo' } });
+  }
+
+  async getHistoricCourses() {
+    return this.prisma.courseBase.findMany({ where: { status: 'historico' } });
   }
 
   // GET /courses/:id
@@ -64,85 +91,10 @@ export class CourseBService {
     return activeCourse;
   }
 
-  // GET /courses/editable -> Obtiene el curso que se puede editar (inactivo si existe activo, o el activo si no hay cursos activos)
-  async getEditableCourse() {
-    // Primero verificar si existe un curso activo
+  // POST /courses/:id/clone -> Crea una copia completa del curso base
+  async cloneActiveToInactive() {
     const activeCourse = await this.prisma.courseBase.findFirst({
       where: { status: 'activo' },
-    });
-
-    if (activeCourse) {
-      // Si existe curso activo, buscar uno inactivo para editar
-      const inactiveCourse = await this.prisma.courseBase.findFirst({
-        where: { status: 'inactivo' },
-        include: {
-          units: {
-            orderBy: { index: 'asc' },
-            include: {
-              lessons: {
-                orderBy: { index: 'asc' },
-                include: {
-                  lessonTopics: {
-                    orderBy: { order: 'asc' },
-                    include: {
-                      topic: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
-
-      return {
-        hasActiveCourse: true,
-        activeCourseId: activeCourse.id,
-        editableCourse: inactiveCourse,
-        canEditDirectly: false,
-        message: inactiveCourse
-          ? 'Existe un curso activo. Editando curso inactivo.'
-          : 'Existe un curso activo. Debes crear una copia para editar.',
-      };
-    }
-
-    // Si no hay curso activo, el único curso (probablemente inactivo) se puede editar directamente
-    const course = await this.prisma.courseBase.findFirst({
-      include: {
-        units: {
-          orderBy: { index: 'asc' },
-          include: {
-            lessons: {
-              orderBy: { index: 'asc' },
-              include: {
-                lessonTopics: {
-                  orderBy: { order: 'asc' },
-                  include: {
-                    topic: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    return {
-      hasActiveCourse: false,
-      activeCourseId: null,
-      editableCourse: course,
-      canEditDirectly: true,
-      message:
-        'No hay cursos activos. Puedes editar directamente el curso base.',
-    };
-  }
-
-  // POST /courses/:id/clone -> Crea una copia completa del curso base (espejo/temporal)
-  async cloneCourse(courseId: number) {
-    // Obtener el curso original con TODO su contenido (incluyendo topics, content, resources)
-    const originalCourse = await this.prisma.courseBase.findUnique({
-      where: { id: courseId },
       include: {
         units: {
           orderBy: { index: 'asc' },
@@ -170,39 +122,30 @@ export class CourseBService {
         },
       },
     });
-
-    if (!originalCourse) {
-      throw new Error('Curso no encontrado');
-    }
-
-    // Mapa para trackear los topics originales y sus clones (oldTopicId -> newTopicId)
+    if (!activeCourse) throw new Error('No existe curso activo para clonar');
+    const existingInactive = await this.prisma.courseBase.findFirst({
+      where: { status: 'inactivo' },
+    });
+    if (existingInactive)
+      throw new Error('Ya existe un curso inactivo. No se puede crear otro.');
     const topicIdMap = new Map<number, number>();
 
-    // PASO 1: Clonar todos los Topics únicos del curso con su Content y Resources
     const uniqueTopicIds = new Set<number>();
-    originalCourse.units.forEach((unit) => {
+    activeCourse.units.forEach((unit) => {
       unit.lessons.forEach((lesson) => {
         lesson.lessonTopics.forEach((lt) => {
           uniqueTopicIds.add(lt.topicId);
         });
       });
     });
-
-    // Clonar cada topic único
     for (const originalTopicId of uniqueTopicIds) {
       const originalTopic = await this.prisma.topic.findUnique({
         where: { id: originalTopicId },
         include: {
-          content: {
-            include: {
-              resources: true,
-            },
-          },
+          content: { include: { resources: true } },
         },
       });
-
       if (originalTopic) {
-        // Crear el topic clonado con su content y resources
         const clonedTopic = await this.prisma.topic.create({
           data: {
             name: originalTopic.name,
@@ -228,19 +171,15 @@ export class CourseBService {
               : undefined,
           },
         });
-
-        // Guardar el mapeo: ID original -> ID clonado
         topicIdMap.set(originalTopicId, clonedTopic.id);
       }
     }
-
-    // PASO 2: Crear el nuevo curso con sus unidades, lecciones y lessonTopics apuntando a los topics clonados
     const clonedCourse = await this.prisma.courseBase.create({
       data: {
-        title: `${originalCourse.title} (Copia)`,
+        title: `${activeCourse.title} (Copia)`,
         status: 'inactivo',
         units: {
-          create: originalCourse.units.map((unit) => ({
+          create: activeCourse.units.map((unit) => ({
             title: unit.title,
             index: unit.index,
             published: unit.published,
@@ -252,7 +191,7 @@ export class CourseBService {
                 content: lesson.content,
                 lessonTopics: {
                   create: lesson.lessonTopics.map((lt) => ({
-                    topicId: topicIdMap.get(lt.topicId) || lt.topicId, // Usar el topic clonado
+                    topicId: topicIdMap.get(lt.topicId) || lt.topicId,
                     order: lt.order,
                   })),
                 },
@@ -285,52 +224,73 @@ export class CourseBService {
         },
       },
     });
-
     return {
       message: 'Copia del curso creada exitosamente',
       clonedTopicsCount: topicIdMap.size,
       originalCourse: {
-        id: originalCourse.id,
-        title: originalCourse.title,
-        status: originalCourse.status,
+        id: activeCourse.id,
+        title: activeCourse.title,
+        status: activeCourse.status,
       },
       clonedCourse,
     };
   }
 
-  // PATCH /courses/:id/activate -> Activa un curso y desactiva todos los demás
-  async activateCourse(courseId: number) {
-    const course = await this.prisma.courseBase.findUnique({
-      where: { id: courseId },
+  // PATCH /courses/activate -> Activa el curso inactivo y pasa el activo a histórico
+  async activateInactiveCourse() {
+    const inactive = await this.prisma.courseBase.findFirst({
+      where: { status: 'inactivo' },
     });
-
-    if (!course) {
-      throw new Error('Curso no encontrado');
-    }
-
-    // Desactivar todos los cursos
-    await this.prisma.courseBase.updateMany({
+    if (!inactive) throw new Error('No existe curso inactivo para activar');
+    const active = await this.prisma.courseBase.findFirst({
       where: { status: 'activo' },
-      data: { status: 'inactivo' },
     });
-
-    // Activar el curso seleccionado
-    const activatedCourse = await this.prisma.courseBase.update({
-      where: { id: courseId },
+    if (active) {
+      await this.prisma.courseBase.update({
+        where: { id: active.id },
+        data: { status: 'historico' },
+      });
+    }
+    const activated = await this.prisma.courseBase.update({
+      where: { id: inactive.id },
       data: { status: 'activo' },
     });
-
-    return {
-      message: `Curso "${activatedCourse.title}" activado exitosamente`,
-      course: activatedCourse,
-    };
+    return { message: 'Curso inactivo activado', activated };
   }
 
-  // PATCH /courses/:id -> Actualizar título del curso
-  async updateCourse(courseId: number, data: { title?: string }) {
-    return this.prisma.courseBase.update({
-      where: { id: courseId },
-      data,
+  // PATCH /courses/:id -> Actualiza el curso (no permite editar históricos)
+  async updateCourse(id: number, data: { title?: string }) {
+    const course = await this.prisma.courseBase.findUnique({ where: { id } });
+    if (!course) throw new Error('Curso no encontrado');
+    if (course.status === 'historico')
+      throw new Error('No se puede editar un curso histórico');
+    return this.prisma.courseBase.update({ where: { id }, data });
+  }
+
+  // GET /courses/:id/full -> Curso con todo su contenido (unidades, lecciones, topics, etc)
+  async getCourseWithContent(id: number) {
+    const course = await this.prisma.courseBase.findUnique({
+      where: { id },
+      include: {
+        units: {
+          orderBy: { index: 'asc' },
+          include: {
+            lessons: {
+              orderBy: { index: 'asc' },
+              include: {
+                lessonTopics: {
+                  orderBy: { order: 'asc' },
+                  include: {
+                    topic: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
+    if (!course) throw new Error('Curso no encontrado');
+    return course;
   }
 }

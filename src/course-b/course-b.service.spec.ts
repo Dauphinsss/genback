@@ -6,20 +6,21 @@ describe('CourseBService', () => {
   let service: CourseBService;
   let prisma: PrismaService;
 
-  const cursoMock = { id: 1, title: 'Curso de prueba', status: 'activo' };
-
-  const prismaMock = {
-    courseBase: {
-      create: jest.fn((data) => ({ id: 1, ...data.data })),
-      findMany: jest.fn(),
-      findUnique: jest.fn(() => cursoMock),
-      findFirst: jest.fn(() => cursoMock),
-      update: jest.fn(),
-      updateMany: jest.fn(),
-    },
-  };
+  let cursoMock;
+  let prismaMock;
 
   beforeEach(async () => {
+    cursoMock = { id: 1, title: 'Curso de prueba', status: 'activo' };
+    prismaMock = {
+      courseBase: {
+        create: jest.fn((data) => ({ id: 1, ...data.data })),
+        findMany: jest.fn(),
+        findUnique: jest.fn(() => cursoMock),
+        findFirst: jest.fn(() => cursoMock),
+        update: jest.fn(),
+        updateMany: jest.fn(),
+      },
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CourseBService,
@@ -29,9 +30,6 @@ describe('CourseBService', () => {
 
     service = module.get<CourseBService>(CourseBService);
     prisma = module.get<PrismaService>(PrismaService);
-
-    // Reset mock default return value
-    prismaMock.courseBase.findMany.mockResolvedValue([cursoMock]);
   });
 
   it('debería estar definido', () => {
@@ -39,10 +37,36 @@ describe('CourseBService', () => {
   });
 
   describe('createCourse', () => {
-    it('debería crear un curso con estado por defecto', async () => {
+    it('lanza error si ya existe un curso activo', async () => {
+      prismaMock.courseBase.findMany.mockImplementation(() => [
+        { id: 1, title: 'Curso existente', status: 'activo' },
+      ]);
+      await expect(service.createCourse('Nuevo Curso')).rejects.toThrow(
+        'Ya existe un curso activo. No se puede crear otro.',
+      );
+    });
+
+    it('lanza error si ya existe un curso inactivo', async () => {
+      prismaMock.courseBase.findMany.mockImplementation(() => [
+        { id: 2, title: 'Curso inactivo', status: 'inactivo' },
+      ]);
+      await expect(service.createCourse('Curso 2', 'inactivo')).rejects.toThrow(
+        'Ya existe un curso inactivo. No se puede crear otro.',
+      );
+    });
+
+    it('crea un curso activo si no existe otro activo', async () => {
+      prismaMock.courseBase.findFirst.mockReset();
+      prismaMock.courseBase.findFirst.mockResolvedValue(null);
+      prismaMock.courseBase.create.mockReset();
+      prismaMock.courseBase.create.mockResolvedValue({
+        id: 3,
+        title: 'Nuevo Curso',
+        status: 'activo',
+      });
       const resultado = await service.createCourse('Nuevo Curso');
       expect(resultado).toEqual({
-        id: 1,
+        id: 3,
         title: 'Nuevo Curso',
         status: 'activo',
       });
@@ -51,10 +75,18 @@ describe('CourseBService', () => {
       });
     });
 
-    it('debería crear un curso con el estado proporcionado', async () => {
+    it('crea un curso inactivo si no existe otro inactivo', async () => {
+      prismaMock.courseBase.findFirst.mockReset();
+      prismaMock.courseBase.findFirst.mockResolvedValue(null);
+      prismaMock.courseBase.create.mockReset();
+      prismaMock.courseBase.create.mockResolvedValue({
+        id: 4,
+        title: 'Curso 2',
+        status: 'inactivo',
+      });
       const resultado = await service.createCourse('Curso 2', 'inactivo');
       expect(resultado).toEqual({
-        id: 1,
+        id: 4,
         title: 'Curso 2',
         status: 'inactivo',
       });
@@ -66,16 +98,23 @@ describe('CourseBService', () => {
 
   describe('getAllCourses', () => {
     it('debería devolver todos los cursos', async () => {
+      const cursos = [
+        { id: 1, title: 'Curso 1', status: 'activo' },
+        { id: 2, title: 'Curso 2', status: 'inactivo' },
+      ];
+      prismaMock.courseBase.findMany.mockResolvedValue(cursos);
       const resultado = await service.getAllCourses();
-      expect(resultado).toEqual([cursoMock]);
+      expect(resultado).toEqual(cursos);
       expect(prisma.courseBase.findMany).toHaveBeenCalled();
     });
   });
 
   describe('getActiveCourses', () => {
     it('debería devolver solo los cursos activos', async () => {
+      const cursos = [{ id: 1, title: 'Curso 1', status: 'activo' }];
+      prismaMock.courseBase.findMany.mockResolvedValue(cursos);
       const resultado = await service.getActiveCourses();
-      expect(resultado).toEqual([cursoMock]);
+      expect(resultado).toEqual(cursos);
       expect(prisma.courseBase.findMany).toHaveBeenCalledWith({
         where: { status: 'activo' },
       });
@@ -84,8 +123,10 @@ describe('CourseBService', () => {
 
   describe('getByStatus', () => {
     it('debería devolver los cursos filtrados por estado', async () => {
+      const cursos = [{ id: 1, title: 'Curso 1', status: 'activo' }];
+      prismaMock.courseBase.findMany.mockResolvedValue(cursos);
       const resultado = await service.getByStatus('activo');
-      expect(resultado).toEqual([cursoMock]);
+      expect(resultado).toEqual(cursos);
       expect(prisma.courseBase.findMany).toHaveBeenCalledWith({
         where: { status: 'activo' },
       });
@@ -94,8 +135,10 @@ describe('CourseBService', () => {
 
   describe('getById', () => {
     it('debería devolver un curso según su id', async () => {
+      const curso = { id: 1, title: 'Curso 1', status: 'activo' };
+      prismaMock.courseBase.findUnique.mockReturnValue(curso);
       const resultado = await service.getById(1);
-      expect(resultado).toEqual(cursoMock);
+      expect(resultado).toEqual(curso);
       expect(prisma.courseBase.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
       });
@@ -104,49 +147,20 @@ describe('CourseBService', () => {
 
   describe('Validación de unicidad de curso activo', () => {
     it('debería tener solo UN curso activo aunque existan múltiples cursos', async () => {
-      // Mock: Simular múltiples cursos en la base de datos
       const multipleCourses = [
-        {
-          id: 1,
-          title: 'Python Básico',
-          status: 'activo',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: 2,
-          title: 'Python Avanzado (Copia)',
-          status: 'inactivo',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: 3,
-          title: 'Python Viejo',
-          status: 'inactivo',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
+        { id: 1, title: 'Python Básico', status: 'activo' },
+        { id: 2, title: 'Python Avanzado (Copia)', status: 'inactivo' },
+        { id: 3, title: 'Python Viejo', status: 'inactivo' },
       ];
-
       prismaMock.courseBase.findMany.mockResolvedValue(multipleCourses);
-
       const allCourses = await service.getAllCourses();
-
-      // Verificar que existen múltiples cursos
       expect(allCourses).toHaveLength(3);
-
-      // Filtrar cursos activos
       const activeCourses = allCourses.filter(
         (course) => course.status === 'activo',
       );
-
-      // VERIFICACIÓN CRÍTICA: Solo debe haber UN curso activo
       expect(activeCourses).toHaveLength(1);
       expect(activeCourses[0].id).toBe(1);
       expect(activeCourses[0].status).toBe('activo');
-
-      // Verificar que los demás están inactivos
       const inactiveCourses = allCourses.filter(
         (course) => course.status === 'inactivo',
       );
@@ -156,41 +170,42 @@ describe('CourseBService', () => {
       ).toBe(true);
     });
 
-    it('debería garantizar que activateCourse desactiva todos los demás cursos', async () => {
-      const courseToActivate = {
+    it('debería activar un curso inactivo y poner el activo como histórico', async () => {
+      const inactiveCourse = {
         id: 2,
         title: 'Curso a Activar',
         status: 'inactivo',
       };
-
-      prismaMock.courseBase.findUnique = jest
+      const activeCourse = { id: 1, title: 'Curso Activo', status: 'activo' };
+      prismaMock.courseBase.findFirst = jest
         .fn()
-        .mockResolvedValue(courseToActivate);
-      prismaMock.courseBase.updateMany = jest
+        .mockImplementationOnce(() => inactiveCourse)
+        .mockImplementationOnce(() => activeCourse);
+      prismaMock.courseBase.update = jest
         .fn()
-        .mockResolvedValue({ count: 1 });
-      prismaMock.courseBase.update = jest.fn().mockResolvedValue({
-        ...courseToActivate,
-        status: 'activo',
-      });
+        .mockImplementationOnce(() => ({
+          ...activeCourse,
+          status: 'historico',
+        }))
+        .mockImplementationOnce(() => ({
+          ...inactiveCourse,
+          status: 'activo',
+        }));
 
-      const result = await service.activateCourse(2);
+      const result = await service.activateInactiveCourse();
 
-      // Verificar que se desactivaron TODOS los cursos activos
-      expect(prismaMock.courseBase.updateMany).toHaveBeenCalledWith({
-        where: { status: 'activo' },
-        data: { status: 'inactivo' },
-      });
-
-      // Verificar que se activó el curso seleccionado
       expect(prismaMock.courseBase.update).toHaveBeenCalledWith({
-        where: { id: 2 },
+        where: { id: activeCourse.id },
+        data: { status: 'historico' },
+      });
+
+      expect(prismaMock.courseBase.update).toHaveBeenCalledWith({
+        where: { id: inactiveCourse.id },
         data: { status: 'activo' },
       });
-
       // Verificar el resultado
-      expect(result.course.status).toBe('activo');
-      expect(result.message).toContain('activado exitosamente');
+      expect(result.activated.status).toBe('activo');
+      expect(result.message).toContain('activado');
     });
 
     it('debería detectar y prevenir escenarios con múltiples cursos activos', async () => {

@@ -76,11 +76,8 @@ export class LessonsService {
     });
     if (!unit) throw new NotFoundException('Unidad no encontrada');
 
-    // REGLA: Solo se pueden editar cursos INACTIVOS
-    if (unit.courseBase.status === 'activo') {
-      throw new BadRequestException(
-        'No se puede editar un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
-      );
+    if (unit.courseBase.status === 'historico') {
+      throw new BadRequestException('No se puede editar un curso histórico.');
     }
 
     return this.prisma.lesson.create({
@@ -99,11 +96,8 @@ export class LessonsService {
     });
     if (!lesson) throw new NotFoundException('Lección no encontrada');
 
-    // REGLA: Solo se pueden editar cursos INACTIVOS
-    if (lesson.unit.courseBase.status === 'activo') {
-      throw new BadRequestException(
-        'No se puede editar un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
-      );
+    if (lesson.unit.courseBase.status === 'historico') {
+      throw new BadRequestException('No se puede editar un curso histórico.');
     }
 
     return this.prisma.lesson.update({
@@ -119,10 +113,9 @@ export class LessonsService {
     });
     if (!lesson) throw new NotFoundException('Lección no encontrada');
 
-    // REGLA: Solo se pueden editar cursos INACTIVOS
-    if (lesson.unit.courseBase.status === 'activo') {
+    if (lesson.unit.courseBase.status === 'historico') {
       throw new BadRequestException(
-        'No se puede eliminar lecciones de un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
+        'No se puede eliminar lecciones de un curso histórico.',
       );
     }
 
@@ -142,11 +135,8 @@ export class LessonsService {
     });
     if (!lesson) throw new NotFoundException('Lección no encontrada');
 
-    // REGLA: Solo se pueden editar cursos INACTIVOS
-    if (lesson.unit.courseBase.status === 'activo') {
-      throw new BadRequestException(
-        'No se puede editar un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
-      );
+    if (lesson.unit.courseBase.status === 'historico') {
+      throw new BadRequestException('No se puede editar un curso histórico.');
     }
 
     // Verificar que el topic existe
@@ -199,11 +189,8 @@ export class LessonsService {
     });
     if (!lesson) throw new NotFoundException('Lección no encontrada');
 
-    // REGLA: Solo se pueden editar cursos INACTIVOS
-    if (lesson.unit.courseBase.status === 'activo') {
-      throw new BadRequestException(
-        'No se puede editar un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
-      );
+    if (lesson.unit.courseBase.status === 'historico') {
+      throw new BadRequestException('No se puede editar un curso histórico.');
     }
 
     const lessonTopic = await this.prisma.lessonTopic.findUnique({
@@ -265,11 +252,8 @@ export class LessonsService {
     });
     if (!lesson) throw new NotFoundException('Lección no encontrada');
 
-    // REGLA: Solo se pueden editar cursos INACTIVOS
-    if (lesson.unit.courseBase.status === 'activo') {
-      throw new BadRequestException(
-        'No se puede editar un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
-      );
+    if (lesson.unit.courseBase.status === 'historico') {
+      throw new BadRequestException('No se puede editar un curso histórico.');
     }
 
     const lessonTopic = await this.prisma.lessonTopic.findUnique({

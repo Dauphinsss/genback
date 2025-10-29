@@ -165,10 +165,13 @@ describe('LessonsService', () => {
         courseBase: { status: 'activo' },
       } as any);
 
-      await expect(service.createLesson(dto)).rejects.toThrow(
-        'No se puede editar un curso activo',
-      );
-      expect(prisma.lesson.create).not.toHaveBeenCalled();
+      await expect(service.createLesson(dto)).resolves.toEqual({
+        id: 10,
+        index: 0,
+        title: 'Nueva',
+        unitId: 5,
+      });
+      expect(prisma.lesson.create).toHaveBeenCalled();
     });
   });
 
@@ -203,10 +206,12 @@ describe('LessonsService', () => {
         unit: { courseBase: { status: 'activo' } },
       } as any);
 
-      await expect(service.updateLesson(9, { title: 'X' })).rejects.toThrow(
-        'No se puede editar un curso activo',
-      );
-      expect(prisma.lesson.update).not.toHaveBeenCalled();
+      await expect(service.updateLesson(9, { title: 'X' })).resolves.toEqual({
+        id: 9,
+        index: 2,
+        title: 'Editado',
+      });
+      expect(prisma.lesson.update).toHaveBeenCalled();
     });
 
     it('lanza NotFound si no existe', async () => {
@@ -238,14 +243,14 @@ describe('LessonsService', () => {
       expect(result).toBe(deleted);
     });
 
-    it('lanza error si el curso está activo', async () => {
+    it('lanza error si el curso es histórico', async () => {
       prisma.lesson.findUnique.mockResolvedValue({
         id: 11,
-        unit: { courseBase: { status: 'activo' } },
+        unit: { courseBase: { status: 'historico' } },
       } as any);
 
       await expect(service.deleteLesson(11)).rejects.toThrow(
-        'No se puede eliminar lecciones de un curso activo',
+        'No se puede eliminar lecciones de un curso histórico.',
       );
       expect(prisma.lesson.delete).not.toHaveBeenCalled();
     });

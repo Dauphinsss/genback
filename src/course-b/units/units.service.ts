@@ -17,11 +17,8 @@ export class UnitsService {
 
     if (!course) throw new Error('Curso no encontrado');
 
-    // REGLA: Solo se pueden editar cursos INACTIVOS
-    if (course.status === 'activo') {
-      throw new Error(
-        'No se puede editar un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
-      );
+    if (course.status === 'historico') {
+      throw new Error('No se puede editar un curso histórico.');
     }
 
     return this.prisma.unit.create({
@@ -60,11 +57,8 @@ export class UnitsService {
 
     if (!unit) throw new Error('Unidad no encontrada');
 
-    // REGLA: Solo se pueden editar cursos INACTIVOS
-    if (unit.courseBase.status === 'activo') {
-      throw new Error(
-        'No se puede editar un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
-      );
+    if (unit.courseBase.status === 'historico') {
+      throw new Error('No se puede editar un curso histórico.');
     }
 
     return this.prisma.unit.update({
@@ -81,11 +75,8 @@ export class UnitsService {
 
     if (!unit) throw new Error('Unidad no encontrada');
 
-    // REGLA: Solo se pueden editar cursos INACTIVOS
-    if (unit.courseBase.status === 'activo') {
-      throw new Error(
-        'No se puede eliminar unidades de un curso activo. Los cursos activos están en uso por profesores y estudiantes.',
-      );
+    if (unit.courseBase.status === 'historico') {
+      throw new Error('No se puede eliminar unidades de un curso histórico.');
     }
 
     await this.prisma.lesson.deleteMany({

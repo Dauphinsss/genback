@@ -23,7 +23,7 @@ export class CourseBController {
     @Body()
     body: {
       title: string;
-      status?: 'activo' | 'inactivo';
+      status?: 'activo' | 'inactivo' | 'historico';
     },
   ) {
     return this.coursesService.createCourse(body.title, body.status);
@@ -31,7 +31,7 @@ export class CourseBController {
 
   // GET /courses  lista todos o filtra con ?status=activo|inactivo
   @Get()
-  async findAll(@Query('status') status?: 'activo' | 'inactivo') {
+  async findAll(@Query('status') status?: 'activo' | 'inactivo' | 'historico') {
     if (status) return this.coursesService.getByStatus(status);
     return this.coursesService.getAllCourses();
   }
@@ -48,22 +48,28 @@ export class CourseBController {
     return this.coursesService.getActiveCourses();
   }
 
-  // GET /courses/editable -> Obtiene el curso que se puede editar
-  @Get('editable')
-  async getEditableCourse() {
-    return this.coursesService.getEditableCourse();
+  // GET /courses/inactive -> Obtiene el curso inactivo
+  @Get('inactive')
+  async getInactiveCourse() {
+    return this.coursesService.getInactiveCourse();
   }
 
-  // POST /courses/:id/clone -> Crea una copia del curso
-  @Post(':id/clone')
-  async cloneCourse(@Param('id', ParseIntPipe) id: number) {
-    return this.coursesService.cloneCourse(id);
+  // GET /courses/historic -> Obtiene los cursos históricos
+  @Get('historic')
+  async getHistoricCourses() {
+    return this.coursesService.getHistoricCourses();
   }
 
-  // PATCH /courses/:id/activate -> Activa un curso
-  @Patch(':id/activate')
-  async activateCourse(@Param('id', ParseIntPipe) id: number) {
-    return this.coursesService.activateCourse(id);
+  // POST /courses/clone -> Clona el curso activo a inactivo
+  @Post('clone')
+  async cloneActiveToInactive() {
+    return this.coursesService.cloneActiveToInactive();
+  }
+
+  // PATCH /courses/activate -> Activa el curso inactivo
+  @Patch('activate')
+  async activateInactiveCourse() {
+    return this.coursesService.activateInactiveCourse();
   }
 
   // PATCH /courses/:id -> Actualiza el curso
@@ -73,6 +79,12 @@ export class CourseBController {
     @Body() body: { title?: string },
   ) {
     return this.coursesService.updateCourse(id, body);
+  }
+
+  // GET /courses/:id/full
+  @Get(':id/full')
+  async getCourseWithContent(@Param('id', ParseIntPipe) id: number) {
+    return this.coursesService.getCourseWithContent(id);
   }
 
   // GET /courses/:id

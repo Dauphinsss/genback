@@ -75,14 +75,14 @@ describe('UnitsService', () => {
       expect(result).toEqual({ id: 10, ...payload });
     });
 
-    it('lanza error si el curso está activo (no se puede editar)', async () => {
+    it('lanza error si el curso es histórico (no se puede editar)', async () => {
       prisma.courseBase.findUnique.mockResolvedValue({
         id: 1,
-        status: 'activo',
+        status: 'historico',
       });
 
       await expect(service.createUnit(payload)).rejects.toThrow(
-        'No se puede editar un curso activo',
+        'No se puede editar un curso histórico.',
       );
       expect(prisma.unit.create).not.toHaveBeenCalled();
     });
@@ -149,14 +149,14 @@ describe('UnitsService', () => {
       expect(result).toEqual({ id: 5, title: 'Nuevo título' });
     });
 
-    it('lanza error si el curso está activo', async () => {
+    it('lanza error si el curso es histórico', async () => {
       prisma.unit.findUnique.mockResolvedValue({
         id: 5,
-        courseBase: { status: 'activo' },
+        courseBase: { status: 'historico' },
       });
 
       await expect(service.updateUnit(5, 'Nuevo título')).rejects.toThrow(
-        'No se puede editar un curso activo',
+        'No se puede editar un curso histórico.',
       );
       expect(prisma.unit.update).not.toHaveBeenCalled();
     });
@@ -180,14 +180,14 @@ describe('UnitsService', () => {
       expect(result).toEqual({ id: 9 });
     });
 
-    it('lanza error si el curso está activo', async () => {
+    it('lanza error si el curso es histórico', async () => {
       prisma.unit.findUnique.mockResolvedValue({
         id: 9,
-        courseBase: { status: 'activo' },
+        courseBase: { status: 'historico' },
       });
 
       await expect(service.deleteUnit(9)).rejects.toThrow(
-        'No se puede eliminar unidades de un curso activo',
+        'No se puede eliminar unidades de un curso histórico.',
       );
       expect(prisma.lesson.deleteMany).not.toHaveBeenCalled();
       expect(prisma.unit.delete).not.toHaveBeenCalled();
