@@ -46,31 +46,64 @@ describe('Content E2E', () => {
   });
 
   afterAll(async () => {
-    if (contentId)
-      await prisma.content.delete({ where: { id: contentId } }).catch(() => {});
-    if (topicId)
-      await prisma.topic.delete({ where: { id: topicId } }).catch(() => {});
-    await app.close();
+    if (prisma) {
+      if (contentId)
+        await prisma.content
+          .delete({ where: { id: contentId } })
+          .catch(() => {});
+      if (topicId)
+        await prisma.topic.delete({ where: { id: topicId } }).catch(() => {});
+      await prisma.user
+        .deleteMany({ where: { provider: 'test' } })
+        .catch(() => {});
+    }
+    if (app) {
+      await app.close();
+    }
   });
 
-  it('POST /content/topic/:topicId crea content (solo description)', async () => {
+  it('POST /content/topic/:topicId crea content con blocksJson', async () => {
+    const blocksJson = [
+      { type: 'paragraph', content: 'Hola mundo' },
+      { type: 'heading', content: 'Título de prueba' },
+    ];
+
     const res = await request(app.getHttpServer())
       .post(`/content/topic/${topicId}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ description: 'intro' })
+      .send({ description: 'intro', blocksJson })
       .expect(201);
 
     expect(res.body).toHaveProperty('id');
     expect(res.body.topicId).toBe(topicId);
+    expect(res.body.blocksJson).toEqual(blocksJson);
+    expect(res.body.description).toBe('intro');
     contentId = res.body.id;
   });
 
-  it('GET /content/topic/:topicId devuelve el content', async () => {
+  it('GET /content/topic/:topicId devuelve el content con blocksJson', async () => {
     const res = await request(app.getHttpServer())
       .get(`/content/topic/${topicId}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
     expect(res.body).toHaveProperty('topicId', topicId);
+    expect(res.body).toHaveProperty('blocksJson');
+    expect(Array.isArray(res.body.blocksJson)).toBe(true);
+  });
+
+  it('PUT /content/:contentId actualiza el blocksJson', async () => {
+    const newBlocksJson = [
+      { type: 'paragraph', content: 'Contenido actualizado' },
+    ];
+
+    const res = await request(app.getHttpServer())
+      .put(`/content/${contentId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ blocksJson: newBlocksJson, description: 'actualizado' })
+      .expect(200);
+
+    expect(res.body.blocksJson).toEqual(newBlocksJson);
+    expect(res.body.description).toBe('actualizado');
   });
 });

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsObject } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class CreateContentDto {
   @IsOptional()
@@ -6,8 +6,7 @@ export class CreateContentDto {
   description?: string;
 
   @IsOptional()
-  @IsObject()
-  blocksJson?: any;
+  blocksJson?: any; // BlockNote JSON puede ser array u objeto
 }
 
 export class UpdateContentDto {
@@ -16,6 +15,5 @@ export class UpdateContentDto {
   description?: string;
 
   @IsOptional()
-  @IsObject()
-  blocksJson?: any;
+  blocksJson?: any; // BlockNote JSON puede ser array u objeto
 }

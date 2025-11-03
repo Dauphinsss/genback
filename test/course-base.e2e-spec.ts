@@ -36,7 +36,14 @@ describe('CourseBase e2e', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (prisma) {
+      await prisma.user
+        .deleteMany({ where: { provider: 'test' } })
+        .catch(() => {});
+    }
+    if (app) {
+      await app.close();
+    }
   });
 
   it('debe haber exactamente 1 curso activo, 0 o 1 inactivo, y 0 o más históricos', async () => {

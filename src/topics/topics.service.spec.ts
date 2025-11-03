@@ -111,7 +111,7 @@ describe('TopicsService', () => {
   });
 
   describe('getTopicById', () => {
-    it('returns topic and, si hay jsonFileUrl, el servicio podría descargarlo (no lo exigimos)', async () => {
+    it('returns topic con blocksJson directamente de la DB', async () => {
       const topic = {
         id: 1,
         name: 'T',
@@ -119,13 +119,12 @@ describe('TopicsService', () => {
         createdAt: new Date(),
         content: {
           id: 9,
-          jsonFileUrl: 'https://gcs/topic-1/content.json',
+          blocksJson: [{ type: 'paragraph', content: 'Test' }],
           resources: [],
         },
         lessonTopics: [],
       };
       mockPrisma.topic.findUnique.mockResolvedValue(topic);
-      mockGCS.downloadJsonFile.mockResolvedValue({ blocks: [] });
 
       const res = await service.getTopicById(1);
 

@@ -135,7 +135,7 @@ model LessonTopic {
 model Content {
   id          Int      @id @default(autoincrement())
   description String?
-  jsonFileUrl String?
+  blocksJson  Json?    // JSON de BlockNote guardado directamente
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

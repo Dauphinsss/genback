@@ -38,9 +38,15 @@ describe('Topics E2E', () => {
   });
 
   afterAll(async () => {
-    await prisma.topic.deleteMany({});
-    await prisma.user.deleteMany({ where: { provider: 'test' } });
-    await app.close();
+    if (prisma) {
+      await prisma.topic.deleteMany({}).catch(() => {});
+      await prisma.user
+        .deleteMany({ where: { provider: 'test' } })
+        .catch(() => {});
+    }
+    if (app) {
+      await app.close();
+    }
   });
 
   it('POST /topics crea un topic con jsonFileUrl', async () => {

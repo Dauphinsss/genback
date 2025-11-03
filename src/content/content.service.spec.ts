@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContentService } from './content.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { GCSContentService } from './gcs-content.service';
 
 describe('ContentService (unit)', () => {
   let service: ContentService;
@@ -16,17 +15,11 @@ describe('ContentService (unit)', () => {
     },
   };
 
-  const gcs = {
-    uploadJsonFile: jest.fn(), // NUEVO nombre para JSON
-    downloadJsonFile: jest.fn(), // NUEVO nombre para JSON
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContentService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: GCSContentService, useValue: gcs },
       ],
     }).compile();
 
@@ -35,16 +28,15 @@ describe('ContentService (unit)', () => {
   });
 
   describe('createContent', () => {
-    it('crea content subiendo JSON a GCS y guardando jsonFileUrl', async () => {
+    it('crea content guardando blocksJson directamente en DB', async () => {
       const topicId = 10;
-      const dto: any = { description: 'desc', blocksJson: { blocks: [] } };
-
-      gcs.uploadJsonFile.mockResolvedValue('https://gcs/topic-10/content.json');
+      const blocksJson = [{ type: 'paragraph', content: 'Test' }];
+      const dto: any = { description: 'desc', blocksJson };
 
       const created = {
         id: 1,
         topicId,
-        jsonFileUrl: 'https://gcs/topic-10/content.json',
+        blocksJson,
         description: 'desc',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -61,11 +53,10 @@ describe('ContentService (unit)', () => {
 
       const res = await service.createContent(topicId, dto);
 
-      expect(gcs.uploadJsonFile).toHaveBeenCalledWith(dto.blocksJson, topicId);
       expect(mockPrisma.content.create).toHaveBeenCalledWith({
         data: {
           topicId,
-          jsonFileUrl: 'https://gcs/topic-10/content.json',
+          blocksJson,
           description: 'desc',
         },
         include: { topic: true, resources: true },
@@ -80,7 +71,7 @@ describe('ContentService (unit)', () => {
       const created = {
         id: 2,
         topicId,
-        jsonFileUrl: null,
+        blocksJson: null,
         description: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -97,19 +88,18 @@ describe('ContentService (unit)', () => {
 
       const res = await service.createContent(topicId, dto);
 
-      expect(gcs.uploadJsonFile).not.toHaveBeenCalled();
       expect(res).toEqual(created);
     });
   });
 
   describe('getContentByTopicId', () => {
-    it('devuelve content y mantiene jsonFileUrl (no se asume blocksJson en respuesta)', async () => {
+    it('devuelve content con blocksJson desde la DB', async () => {
       const topicId = 20;
-      const jsonUrl = 'https://gcs/topic-20/content.json';
+      const blocksJson = [{ type: 'paragraph', content: 'Hola' }];
       const found = {
         id: 3,
         topicId,
-        jsonFileUrl: jsonUrl,
+        blocksJson,
         description: 'd',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -124,44 +114,36 @@ describe('ContentService (unit)', () => {
       };
       mockPrisma.content.findUnique.mockResolvedValue(found);
 
-      // El servicio podría descargar internamente, pero el test SOLO valida el url.
-      gcs.downloadJsonFile.mockResolvedValue({
-        blocks: [{ type: 'paragraph', data: { text: 'Hola' } }],
-      });
-
       const res: any = await service.getContentByTopicId(topicId);
 
       expect(mockPrisma.content.findUnique).toHaveBeenCalled();
-      expect(gcs.downloadJsonFile).toHaveBeenCalledWith(jsonUrl);
-      // Validamos que el objeto siga trayendo el url y NO esperamos blocksJson.
-      expect(res.jsonFileUrl).toBe(jsonUrl);
+      expect(res.blocksJson).toEqual(blocksJson);
     });
 
     it('retorna null si no existe', async () => {
       mockPrisma.content.findUnique.mockResolvedValue(null);
       const res = await service.getContentByTopicId(999);
       expect(res).toBeNull();
-      expect(gcs.downloadJsonFile).not.toHaveBeenCalled();
     });
   });
 
   describe('updateContent', () => {
-    it('actualiza subiendo nuevo JSON y guarda jsonFileUrl', async () => {
+    it('actualiza guardando nuevo blocksJson en DB', async () => {
       const contentId = 5;
+      const blocksJson = [{ type: 'heading', content: 'Nuevo' }];
       const existing = {
         id: contentId,
         topicId: 77,
-        jsonFileUrl: 'old',
+        blocksJson: [{ type: 'paragraph', content: 'Viejo' }],
         description: 'x',
       };
       mockPrisma.content.findUnique.mockResolvedValue(existing);
 
-      const dto: any = { description: 'nuevo', blocksJson: { blocks: [] } };
-      gcs.uploadJsonFile.mockResolvedValue('https://gcs/topic-77/content.json');
+      const dto: any = { description: 'nuevo', blocksJson };
 
       const updated = {
         ...existing,
-        jsonFileUrl: 'https://gcs/topic-77/content.json',
+        blocksJson,
         description: 'nuevo',
         updatedAt: new Date(),
         createdAt: new Date(),
@@ -178,11 +160,10 @@ describe('ContentService (unit)', () => {
 
       const res = await service.updateContent(contentId, dto);
 
-      expect(gcs.uploadJsonFile).toHaveBeenCalledWith(dto.blocksJson, 77);
       expect(mockPrisma.content.update).toHaveBeenCalledWith({
         where: { id: contentId },
         data: {
-          jsonFileUrl: 'https://gcs/topic-77/content.json',
+          blocksJson,
           description: 'nuevo',
         },
         include: { topic: true, resources: true },
@@ -197,7 +178,7 @@ describe('ContentService (unit)', () => {
       const deleted = {
         id: contentId,
         topicId: 1,
-        jsonFileUrl: null,
+        blocksJson: null,
         description: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -218,7 +199,7 @@ describe('ContentService (unit)', () => {
         {
           id: 1,
           topicId: 1,
-          jsonFileUrl: null,
+          blocksJson: null,
           description: null,
           createdAt: new Date(),
           updatedAt: new Date(),

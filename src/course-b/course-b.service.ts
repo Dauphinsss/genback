@@ -153,7 +153,7 @@ export class CourseBService {
             content: originalTopic.content
               ? {
                   create: {
-                    jsonFileUrl: originalTopic.content.jsonFileUrl,
+                    blocksJson: originalTopic.content.blocksJson,
                     description: originalTopic.content.description,
                     resources: {
                       create: originalTopic.content.resources.map(
