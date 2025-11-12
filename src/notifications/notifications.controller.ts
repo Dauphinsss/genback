@@ -1,11 +1,15 @@
-import { Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Patch, Post, Body, UseGuards } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
+import { NotificationsGateway } from './notifications.gateway';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('notifications')
 @UseGuards(AuthGuard('jwt'))
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly notificationsGateway: NotificationsGateway,
+  ) {}
 
   @Get('user/:userId')
   async getUserNotifications(@Param('userId') userId: string) {
@@ -31,5 +35,11 @@ export class NotificationsController {
   async getUnreadCount(@Param('userId') userId: string) {
     const count = await this.notificationsService.getUnreadCount(+userId);
     return { count };
+  }
+
+  @Post('register-socket')
+  async registerSocket(@Body() body: { userId: number; socketId: string }) {
+    this.notificationsGateway.registerUserSocket(body.userId, body.socketId);
+    return { success: true };
   }
 }

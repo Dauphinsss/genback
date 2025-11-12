@@ -1,16 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, forwardRef, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsGateway } from './notifications.gateway';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => NotificationsGateway))
+    private notificationsGateway: NotificationsGateway,
+  ) {}
 
   async createTopicCreatedNotification(
     userId: number,
     topicId: number,
     topicName: string,
   ) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         userId,
         topicId,
@@ -19,6 +24,15 @@ export class NotificationsService {
         isRead: false,
       },
     });
+
+    // Emit real-time notification
+    this.notificationsGateway.emitNotificationToUser(userId, notification);
+
+    // Update unread count
+    const count = await this.getUnreadCount(userId);
+    this.notificationsGateway.emitUnreadCountToUser(userId, count);
+
+    return notification;
   }
 
   async createTopicUpdatedNotification(
@@ -26,7 +40,7 @@ export class NotificationsService {
     topicId: number,
     topicName: string,
   ) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         userId,
         topicId,
@@ -35,6 +49,15 @@ export class NotificationsService {
         isRead: false,
       },
     });
+
+    // Emit real-time notification
+    this.notificationsGateway.emitNotificationToUser(userId, notification);
+
+    // Update unread count
+    const count = await this.getUnreadCount(userId);
+    this.notificationsGateway.emitUnreadCountToUser(userId, count);
+
+    return notification;
   }
 
   async createTopicDeletedNotification(
@@ -42,7 +65,7 @@ export class NotificationsService {
     topicId: number,
     topicName: string,
   ) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         userId,
         topicId,
@@ -51,6 +74,15 @@ export class NotificationsService {
         isRead: false,
       },
     });
+
+    // Emit real-time notification
+    this.notificationsGateway.emitNotificationToUser(userId, notification);
+
+    // Update unread count
+    const count = await this.getUnreadCount(userId);
+    this.notificationsGateway.emitUnreadCountToUser(userId, count);
+
+    return notification;
   }
 
   async getUserNotifications(userId: number) {
@@ -68,17 +100,28 @@ export class NotificationsService {
   }
 
   async markNotificationAsRead(notificationId: number) {
-    return this.prisma.notification.update({
+    const notification = await this.prisma.notification.update({
       where: { id: notificationId },
       data: { isRead: true },
     });
+
+    // Update unread count for the user
+    const count = await this.getUnreadCount(notification.userId);
+    this.notificationsGateway.emitUnreadCountToUser(notification.userId, count);
+
+    return notification;
   }
 
   async markAllAsRead(userId: number) {
-    return this.prisma.notification.updateMany({
+    const result = await this.prisma.notification.updateMany({
       where: { userId, isRead: false },
       data: { isRead: true },
     });
+
+    // Update unread count (should be 0 now)
+    this.notificationsGateway.emitUnreadCountToUser(userId, 0);
+
+    return result;
   }
 
   async getUnreadCount(userId: number) {
