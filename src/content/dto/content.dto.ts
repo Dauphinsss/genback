@@ -37,3 +37,12 @@ export class UpdateContentDto {
   @IsString()
   changeSummary?: string;
 }
+
+export class RestoreContentDto {
+  @IsString()
+  restoredBy: string;
+
+  @IsOptional()
+  @IsString()
+  changeSummary?: string;
+}

@@ -17,7 +17,11 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ContentService } from './content.service';
 import { ResourceService } from './resource.service';
-import { CreateContentDto, UpdateContentDto } from './dto/content.dto';
+import {
+  CreateContentDto,
+  UpdateContentDto,
+  RestoreContentDto,
+} from './dto/content.dto';
 
 @Controller('content')
 @UseGuards(JwtAuthGuard)
@@ -138,6 +142,43 @@ export class ContentController {
       }
       throw new HttpException(
         'Error deleting resource',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':contentId/history')
+  async getContentHistory(@Param('contentId', ParseIntPipe) contentId: number) {
+    try {
+      return await this.contentService.getContentHistory(contentId);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Error fetching content history',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post(':contentId/restore/:historyId')
+  async restoreContentVersion(
+    @Param('contentId', ParseIntPipe) contentId: number,
+    @Param('historyId', ParseIntPipe) historyId: number,
+    @Body() restoreDto: RestoreContentDto,
+  ) {
+    try {
+      return await this.contentService.restoreContentVersion(historyId, {
+        restoredBy: restoreDto.restoredBy,
+        changeSummary: restoreDto.changeSummary,
+      });
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Error restoring content version',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
