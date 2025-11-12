@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationsService } from './notifications.service';
+import { NotificationsGateway } from './notifications.gateway';
 import { PrismaService } from '../prisma/prisma.service';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
   let prismaService: PrismaService;
+  let gateway: NotificationsGateway;
 
   const mockPrismaService = {
     notification: {
@@ -14,6 +16,18 @@ describe('NotificationsService', () => {
       updateMany: jest.fn(),
       count: jest.fn(),
     },
+    privilege: {
+      findFirst: jest.fn(),
+    },
+    userPrivilege: {
+      findMany: jest.fn(),
+    },
+  };
+
+  const mockNotificationsGateway = {
+    registerUserSocket: jest.fn(),
+    emitNotificationToUser: jest.fn(),
+    emitUnreadCountToUser: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -24,11 +38,16 @@ describe('NotificationsService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: NotificationsGateway,
+          useValue: mockNotificationsGateway,
+        },
       ],
     }).compile();
 
     service = module.get<NotificationsService>(NotificationsService);
     prismaService = module.get<PrismaService>(PrismaService);
+    gateway = module.get<NotificationsGateway>(NotificationsGateway);
     jest.clearAllMocks();
   });
 
@@ -37,14 +56,28 @@ describe('NotificationsService', () => {
   });
 
   describe('createTopicCreatedNotification', () => {
-    it('should create a notification when a topic is created', async () => {
+    it('should create notifications for all users with create_topics privilege', async () => {
       const userId = 1;
       const topicId = 10;
       const topicName = 'Introduction to TypeScript';
 
+      // Mock privilege lookup
+      mockPrismaService.privilege.findFirst.mockResolvedValue({
+        id: 1,
+        name: 'create_topics',
+        description: 'Can create topics',
+        category: 'admin',
+      });
+
+      // Mock users with privilege
+      mockPrismaService.userPrivilege.findMany.mockResolvedValue([
+        { userId: 1 },
+        { userId: 2 },
+      ]);
+
       const expectedNotification = {
         id: 1,
-        userId,
+        userId: 1,
         topicId,
         action: 'created',
         message: `Topic "${topicName}" has been created`,
@@ -55,6 +88,7 @@ describe('NotificationsService', () => {
       mockPrismaService.notification.create.mockResolvedValue(
         expectedNotification,
       );
+      mockPrismaService.notification.count.mockResolvedValue(1);
 
       const result = await service.createTopicCreatedNotification(
         userId,
@@ -62,28 +96,43 @@ describe('NotificationsService', () => {
         topicName,
       );
 
-      expect(mockPrismaService.notification.create).toHaveBeenCalledWith({
-        data: {
-          userId,
-          topicId,
-          action: 'created',
-          message: `Topic "${topicName}" has been created`,
-          isRead: false,
-        },
+      expect(mockPrismaService.privilege.findFirst).toHaveBeenCalledWith({
+        where: { name: 'create_topics' },
       });
-      expect(result).toEqual(expectedNotification);
+      expect(mockPrismaService.userPrivilege.findMany).toHaveBeenCalledWith({
+        where: { privilegeId: 1 },
+        select: { userId: true },
+      });
+      expect(mockPrismaService.notification.create).toHaveBeenCalledTimes(2);
+      expect(gateway.emitNotificationToUser).toHaveBeenCalledTimes(2);
+      expect(gateway.emitUnreadCountToUser).toHaveBeenCalledTimes(2);
+      expect(result).toHaveLength(2);
     });
   });
 
   describe('createTopicUpdatedNotification', () => {
-    it('should create a notification when a topic is updated', async () => {
+    it('should create notifications for all users with create_topics privilege', async () => {
       const userId = 2;
       const topicId = 15;
       const topicName = 'Advanced React Patterns';
 
+      // Mock privilege lookup
+      mockPrismaService.privilege.findFirst.mockResolvedValue({
+        id: 1,
+        name: 'create_topics',
+        description: 'Can create topics',
+        category: 'admin',
+      });
+
+      // Mock users with privilege
+      mockPrismaService.userPrivilege.findMany.mockResolvedValue([
+        { userId: 1 },
+        { userId: 2 },
+      ]);
+
       const expectedNotification = {
         id: 2,
-        userId,
+        userId: 1,
         topicId,
         action: 'updated',
         message: `Topic "${topicName}" has been updated`,
@@ -94,6 +143,7 @@ describe('NotificationsService', () => {
       mockPrismaService.notification.create.mockResolvedValue(
         expectedNotification,
       );
+      mockPrismaService.notification.count.mockResolvedValue(1);
 
       const result = await service.createTopicUpdatedNotification(
         userId,
@@ -101,28 +151,38 @@ describe('NotificationsService', () => {
         topicName,
       );
 
-      expect(mockPrismaService.notification.create).toHaveBeenCalledWith({
-        data: {
-          userId,
-          topicId,
-          action: 'updated',
-          message: `Topic "${topicName}" has been updated`,
-          isRead: false,
-        },
+      expect(mockPrismaService.privilege.findFirst).toHaveBeenCalledWith({
+        where: { name: 'create_topics' },
       });
-      expect(result).toEqual(expectedNotification);
+      expect(mockPrismaService.notification.create).toHaveBeenCalledTimes(2);
+      expect(gateway.emitNotificationToUser).toHaveBeenCalledTimes(2);
+      expect(result).toHaveLength(2);
     });
   });
 
   describe('createTopicDeletedNotification', () => {
-    it('should create a notification when a topic is deleted', async () => {
+    it('should create notifications for all users with create_topics privilege', async () => {
       const userId = 3;
       const topicId = 20;
       const topicName = 'Database Design';
 
+      // Mock privilege lookup
+      mockPrismaService.privilege.findFirst.mockResolvedValue({
+        id: 1,
+        name: 'create_topics',
+        description: 'Can create topics',
+        category: 'admin',
+      });
+
+      // Mock users with privilege
+      mockPrismaService.userPrivilege.findMany.mockResolvedValue([
+        { userId: 1 },
+        { userId: 2 },
+      ]);
+
       const expectedNotification = {
         id: 3,
-        userId,
+        userId: 1,
         topicId,
         action: 'deleted',
         message: `Topic "${topicName}" has been deleted`,
@@ -133,6 +193,7 @@ describe('NotificationsService', () => {
       mockPrismaService.notification.create.mockResolvedValue(
         expectedNotification,
       );
+      mockPrismaService.notification.count.mockResolvedValue(1);
 
       const result = await service.createTopicDeletedNotification(
         userId,
@@ -140,16 +201,12 @@ describe('NotificationsService', () => {
         topicName,
       );
 
-      expect(mockPrismaService.notification.create).toHaveBeenCalledWith({
-        data: {
-          userId,
-          topicId,
-          action: 'deleted',
-          message: `Topic "${topicName}" has been deleted`,
-          isRead: false,
-        },
+      expect(mockPrismaService.privilege.findFirst).toHaveBeenCalledWith({
+        where: { name: 'create_topics' },
       });
-      expect(result).toEqual(expectedNotification);
+      expect(mockPrismaService.notification.create).toHaveBeenCalledTimes(2);
+      expect(gateway.emitNotificationToUser).toHaveBeenCalledTimes(2);
+      expect(result).toHaveLength(2);
     });
   });
 
@@ -272,6 +329,7 @@ describe('NotificationsService', () => {
       mockPrismaService.notification.update.mockResolvedValue(
         updatedNotification,
       );
+      mockPrismaService.notification.count.mockResolvedValue(0);
 
       const result = await service.markNotificationAsRead(notificationId);
 
@@ -279,6 +337,7 @@ describe('NotificationsService', () => {
         where: { id: notificationId },
         data: { isRead: true },
       });
+      expect(gateway.emitUnreadCountToUser).toHaveBeenCalledWith(1, 0);
       expect(result).toEqual(updatedNotification);
       expect(result.isRead).toBe(true);
     });
@@ -299,6 +358,7 @@ describe('NotificationsService', () => {
         where: { userId, isRead: false },
         data: { isRead: true },
       });
+      expect(gateway.emitUnreadCountToUser).toHaveBeenCalledWith(userId, 0);
       expect(result).toEqual(updateResult);
       expect(result.count).toBe(5);
     });
@@ -317,6 +377,7 @@ describe('NotificationsService', () => {
         where: { userId, isRead: false },
         data: { isRead: true },
       });
+      expect(gateway.emitUnreadCountToUser).toHaveBeenCalledWith(userId, 0);
       expect(result.count).toBe(0);
     });
   });

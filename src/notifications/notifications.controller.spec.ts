@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
+import { NotificationsGateway } from './notifications.gateway';
 
 describe('NotificationsController', () => {
   let controller: NotificationsController;
@@ -14,6 +15,12 @@ describe('NotificationsController', () => {
     getUnreadCount: jest.fn(),
   };
 
+  const mockNotificationsGateway = {
+    registerUserSocket: jest.fn(),
+    emitNotificationToUser: jest.fn(),
+    emitUnreadCountToUser: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [NotificationsController],
@@ -21,6 +28,10 @@ describe('NotificationsController', () => {
         {
           provide: NotificationsService,
           useValue: mockNotificationsService,
+        },
+        {
+          provide: NotificationsGateway,
+          useValue: mockNotificationsGateway,
         },
       ],
     }).compile();
@@ -62,7 +73,7 @@ describe('NotificationsController', () => {
         mockNotifications,
       );
 
-      const result = await controller.getUserNotifications(userId);
+      const result = await controller.getUserNotifications(userId.toString());
 
       expect(service.getUserNotifications).toHaveBeenCalledWith(userId);
       expect(result).toEqual(mockNotifications);
@@ -88,7 +99,7 @@ describe('NotificationsController', () => {
         mockUnreadNotifications,
       );
 
-      const result = await controller.getUnreadNotifications(userId);
+      const result = await controller.getUnreadNotifications(userId.toString());
 
       expect(service.getUnreadNotifications).toHaveBeenCalledWith(userId);
       expect(result).toEqual(mockUnreadNotifications);
@@ -113,7 +124,7 @@ describe('NotificationsController', () => {
         updatedNotification,
       );
 
-      const result = await controller.markAsRead(notificationId);
+      const result = await controller.markAsRead(notificationId.toString());
 
       expect(service.markNotificationAsRead).toHaveBeenCalledWith(
         notificationId,
@@ -130,7 +141,7 @@ describe('NotificationsController', () => {
 
       mockNotificationsService.markAllAsRead.mockResolvedValue(updateResult);
 
-      const result = await controller.markAllAsRead(userId);
+      const result = await controller.markAllAsRead(userId.toString());
 
       expect(service.markAllAsRead).toHaveBeenCalledWith(userId);
       expect(result).toEqual(updateResult);
@@ -143,7 +154,7 @@ describe('NotificationsController', () => {
       const userId = 1;
       mockNotificationsService.getUnreadCount.mockResolvedValue(3);
 
-      const result = await controller.getUnreadCount(userId);
+      const result = await controller.getUnreadCount(userId.toString());
 
       expect(service.getUnreadCount).toHaveBeenCalledWith(userId);
       expect(result).toEqual({ count: 3 });
@@ -153,7 +164,7 @@ describe('NotificationsController', () => {
       const userId = 2;
       mockNotificationsService.getUnreadCount.mockResolvedValue(0);
 
-      const result = await controller.getUnreadCount(userId);
+      const result = await controller.getUnreadCount(userId.toString());
 
       expect(service.getUnreadCount).toHaveBeenCalledWith(userId);
       expect(result).toEqual({ count: 0 });
