@@ -13,6 +13,11 @@ describe('ContentService (unit)', () => {
       delete: jest.fn(),
       findMany: jest.fn(),
     },
+    historicContent: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -89,6 +94,48 @@ describe('ContentService (unit)', () => {
       const res = await service.createContent(topicId, dto);
 
       expect(res).toEqual(created);
+    });
+
+    it('crea una entrada de histórico con timestamp y profesor tras la creación', async () => {
+      const topicId = 15;
+      const blocksJson = [{ type: 'paragraph', content: 'Versión 1.0' }];
+      const dto: any = { 
+        description: 'Descripción inicial', 
+        blocksJson,
+        createdBy: 'Profesor 1',
+      };
+
+      const created = {
+        id: 3,
+        topicId,
+        blocksJson,
+        description: 'Descripción inicial',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        topic: {
+          id: topicId,
+          name: 'T3',
+          type: 'content',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        resources: [],
+      };
+      mockPrisma.content.create.mockResolvedValue(created);
+
+      await service.createContent(topicId, dto);
+
+      expect(mockPrisma.historicContent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            contentId: created.id,
+            snapshotBlocksJson: blocksJson,
+            snapshotDescription: 'Descripción inicial',
+            performedBy: 'Profesor 1',
+            changeSummary: 'Creó el contenido',
+          }),
+        }),
+      );
     });
   });
 
@@ -170,6 +217,48 @@ describe('ContentService (unit)', () => {
       });
       expect(res).toEqual(updated);
     });
+
+    it('guarda en el histórico quién actualizó y cuándo, junto con el snapshot nuevo', async () => {
+      const contentId = 33;
+      const existing = {
+        id: contentId,
+        topicId: 901,
+        blocksJson: [{ type: 'paragraph', content: 'Versión previa' }],
+        description: 'Descripción previa',
+      };
+      mockPrisma.content.findUnique.mockResolvedValue(existing);
+
+      const dto: any = {
+        description: 'Descripción nueva',
+        blocksJson: [{ type: 'paragraph', content: 'Versión nueva' }],
+        updatedBy: 'Profesor 1',
+        changeSummary: 'Actualizó el contenido',
+      };
+
+      mockPrisma.content.update.mockResolvedValue({
+        ...existing,
+        blocksJson: dto.blocksJson,
+        description: dto.description,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        topic: {},
+        resources: [],
+      });
+
+      await service.updateContent(contentId, dto);
+
+      expect(mockPrisma.historicContent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            contentId,
+            snapshotBlocksJson: dto.blocksJson,
+            snapshotDescription: dto.description,
+            performedBy: 'Profesor 1',
+            changeSummary: 'Actualizó el contenido',
+          }),
+        }),
+      );
+    });
   });
 
   describe('deleteContent', () => {
@@ -215,6 +304,86 @@ describe('ContentService (unit)', () => {
         orderBy: { createdAt: 'desc' },
       });
       expect(res).toEqual(list);
+    });
+  });
+
+  describe('histórico de contenido', () => {
+    it('lista el historial ordenado por fecha descendente con profesor y resumen de cambio', async () => {
+      const contentId = 2024;
+      const historyList = [
+        {
+          id: 1,
+          contentId,
+          performedBy: 'Profesor 2',
+          changeSummary: 'Actualizó la introducción',
+          createdAt: new Date(),
+        },
+      ];
+      mockPrisma.historicContent.findMany.mockResolvedValue(historyList);
+
+      const res = await (service as any).getContentHistory(contentId);
+
+      expect(mockPrisma.historicContent.findMany).toHaveBeenCalledWith({
+        where: { contentId },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(res).toEqual(historyList);
+    });
+
+    it('restaura una versión previa usando el snapshot almacenado', async () => {
+      const historyId = 55;
+      const contentId = 78;
+      const historyEntry = {
+        id: historyId,
+        contentId,
+        snapshotBlocksJson: [{ type: 'paragraph', content: 'Snapshot' }],
+        snapshotDescription: 'Descripción snapshot',
+        performedBy: 'Profesor 1',
+        changeSummary: 'Actualizó el contenido',
+        createdAt: new Date(),
+      };
+
+      mockPrisma.historicContent.findUnique.mockResolvedValue(historyEntry);
+      mockPrisma.content.update.mockResolvedValue({
+        id: contentId,
+        topicId: 9,
+        blocksJson: historyEntry.snapshotBlocksJson,
+        description: historyEntry.snapshotDescription,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        topic: {},
+        resources: [],
+      });
+
+      const restored = await (service as any).restoreContentVersion(historyId, {
+        restoredBy: 'Profesor 3',
+      });
+
+      expect(mockPrisma.content.update).toHaveBeenCalledWith({
+        where: { id: contentId },
+        data: {
+          blocksJson: historyEntry.snapshotBlocksJson,
+          description: historyEntry.snapshotDescription,
+        },
+        include: { topic: true, resources: true },
+      });
+
+      expect(mockPrisma.historicContent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            contentId,
+            performedBy: 'Profesor 3',
+            changeSummary: 'Restauró una versión anterior',
+          }),
+        }),
+      );
+
+      expect(restored).toEqual(
+        expect.objectContaining({
+          id: contentId,
+          blocksJson: historyEntry.snapshotBlocksJson,
+        }),
+      );
     });
   });
 });

@@ -7,7 +7,7 @@ export class ContentService {
   constructor(private prisma: PrismaService) {}
 
   async createContent(topicId: number, dto: CreateContentDto) {
-    return this.prisma.content.create({
+    const created = await this.prisma.content.create({
       data: {
         topicId,
         blocksJson: dto.blocksJson || null,
@@ -18,6 +18,18 @@ export class ContentService {
         resources: true,
       },
     });
+
+    await this.prisma.historicContent.create({
+      data: {
+        contentId: created.id,
+        performedBy: dto.performedBy ?? dto.createdBy ?? 'Desconocido',
+        changeSummary: dto.changeSummary ?? 'Creó el contenido',
+        snapshotDescription: created.description,
+        snapshotBlocksJson: created.blocksJson,
+      },
+    });
+
+    return created;
   }
 
   async getContentByTopicId(topicId: number) {
@@ -36,7 +48,7 @@ export class ContentService {
     });
     if (!existing) throw new NotFoundException('Content no encontrado');
 
-    return this.prisma.content.update({
+    const updated = await this.prisma.content.update({
       where: { id: contentId },
       data: {
         blocksJson:
@@ -51,6 +63,18 @@ export class ContentService {
         resources: true,
       },
     });
+
+    await this.prisma.historicContent.create({
+      data: {
+        contentId,
+        performedBy: dto.updatedBy ?? 'Desconocido',
+        changeSummary: dto.changeSummary ?? 'Actualizó el contenido',
+        snapshotDescription: updated.description,
+        snapshotBlocksJson: updated.blocksJson,
+      },
+    });
+
+    return updated;
   }
 
   async deleteContent(contentId: number) {
@@ -62,5 +86,46 @@ export class ContentService {
       include: { topic: true, resources: true },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async getContentHistory(contentId: number) {
+    return this.prisma.historicContent.findMany({
+      where: { contentId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async restoreContentVersion(
+    historyId: number,
+    options: { restoredBy: string; changeSummary?: string },
+  ) {
+    const historyEntry = await this.prisma.historicContent.findUnique({
+      where: { id: historyId },
+    });
+    if (!historyEntry) {
+      throw new NotFoundException('Registro histórico no encontrado');
+    }
+
+    const restored = await this.prisma.content.update({
+      where: { id: historyEntry.contentId },
+      data: {
+        blocksJson: historyEntry.snapshotBlocksJson,
+        description: historyEntry.snapshotDescription,
+      },
+      include: { topic: true, resources: true },
+    });
+
+    await this.prisma.historicContent.create({
+      data: {
+        contentId: historyEntry.contentId,
+        performedBy: options.restoredBy ?? 'Desconocido',
+        changeSummary:
+          options.changeSummary ?? 'Restauró una versión anterior',
+        snapshotDescription: restored.description,
+        snapshotBlocksJson: restored.blocksJson,
+      },
+    });
+
+    return restored;
   }
 }
