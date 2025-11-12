@@ -22,6 +22,7 @@ model User {
   teachingCourses Course[]        @relation("Teacher")
   enrolledCourses CourseStudent[]
   privileges      UserPrivilege[]
+  notifications   Notification[]
 }
 
 model Course {
@@ -115,8 +116,9 @@ model Topic {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  content      Content?
-  lessonTopics LessonTopic[]
+  content       Content?
+  lessonTopics  LessonTopic[]
+  notifications Notification[]
 }
 
 model LessonTopic {
@@ -169,4 +171,19 @@ enum ResourceType {
   AUDIO
   DOCUMENT
   OTHER
+}
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  topicId   Int
+  action    String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
 }

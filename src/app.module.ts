@@ -11,6 +11,7 @@ import { LessonsModule } from './course-b/lessons/lessons.module';
 import { TopicsModule } from './topics/topics.module';
 import { ContentModule } from './content/content.module';
 import { CourseBModule } from './course-b/course-b.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { CourseBModule } from './course-b/course-b.module';
     CourseBModule,
     TopicsModule,
     ContentModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

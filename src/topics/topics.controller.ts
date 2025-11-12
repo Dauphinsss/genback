@@ -11,6 +11,7 @@ import {
   HttpStatus,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TopicsService } from './topics.service';
@@ -26,9 +27,9 @@ export class TopicsController {
    * POST /topics
    */
   @Post()
-  async create(@Body() createTopicDto: CreateTopicDto) {
+  async create(@Body() createTopicDto: CreateTopicDto, @Req() req) {
     try {
-      return await this.topicsService.createTopic(createTopicDto);
+      return await this.topicsService.createTopic(createTopicDto, req.user.id);
     } catch {
       throw new HttpException(
         'Error creating topic',
@@ -103,6 +104,7 @@ export class TopicsController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTopicDto: UpdateTopicDto,
+    @Req() req,
   ) {
     try {
       // Verificar que el topic existe
@@ -111,7 +113,11 @@ export class TopicsController {
         throw new HttpException('Topic not found', HttpStatus.NOT_FOUND);
       }
 
-      return await this.topicsService.updateTopic(id, updateTopicDto);
+      return await this.topicsService.updateTopic(
+        id,
+        updateTopicDto,
+        req.user.id,
+      );
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -128,7 +134,7 @@ export class TopicsController {
    * DELETE /topics/:id
    */
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req) {
     try {
       // Verificar que el topic existe
       const existingTopic = await this.topicsService.getTopicById(id);
@@ -136,7 +142,7 @@ export class TopicsController {
         throw new HttpException('Topic not found', HttpStatus.NOT_FOUND);
       }
 
-      return await this.topicsService.deleteTopic(id);
+      return await this.topicsService.deleteTopic(id, req.user.id);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
