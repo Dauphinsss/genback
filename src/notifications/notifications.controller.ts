@@ -42,4 +42,9 @@ export class NotificationsController {
     this.notificationsGateway.registerUserSocket(body.userId, body.socketId);
     return { success: true };
   }
+
+  @Get('debug/users-with-privilege')
+  async debugUsersWithPrivilege() {
+    return this.notificationsService.debugGetUsersWithTopicPrivilege();
+  }
 }
