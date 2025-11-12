@@ -144,7 +144,20 @@ model Content {
   topicId Int   @unique
   topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
-  resources Resource[]
+  resources        Resource[]
+  historicEntries  HistoricContent[]
+}
+
+model HistoricContent {
+  id                  Int      @id @default(autoincrement())
+  contentId           Int
+  performedBy         String
+  changeSummary       String?
+  snapshotDescription String?
+  snapshotBlocksJson  Json?
+  createdAt           DateTime @default(now())
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
 }
 
 model Resource {
@@ -170,7 +183,7 @@ enum ResourceType {
   VIDEO
   AUDIO
   DOCUMENT
-  OTHER
+  OTHER
 }
 model Notification {
   id        Int      @id @default(autoincrement())
