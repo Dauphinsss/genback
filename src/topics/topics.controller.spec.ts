@@ -29,9 +29,10 @@ describe('TopicsController', () => {
     const dto = { name: 'Test' };
     const expected = { id: 1, name: 'Test', type: 'content' };
     mockService.createTopic.mockResolvedValue(expected);
+    const req = { user: { id: 9 } };
 
-    const res = await controller.create(dto);
-    expect(mockService.createTopic).toHaveBeenCalledWith(dto);
+    const res = await controller.create(dto, req);
+    expect(mockService.createTopic).toHaveBeenCalledWith(dto, 9);
     expect(res).toEqual(expected);
   });
 
@@ -67,8 +68,10 @@ describe('TopicsController', () => {
     mockService.getTopicById.mockResolvedValue({ id: 1 });
     mockService.updateTopic.mockResolvedValue({ id: 1, name: 'Nuevo' });
 
-    const res = await controller.update(1, { name: 'Nuevo' });
-    expect(mockService.updateTopic).toHaveBeenCalledWith(1, { name: 'Nuevo' });
+    const req = { user: { id: 10 } };
+
+    const res = await controller.update(1, { name: 'Nuevo' }, req);
+    expect(mockService.updateTopic).toHaveBeenCalledWith(1, { name: 'Nuevo' }, 10);
     expect(res).toEqual({ id: 1, name: 'Nuevo' });
   });
 
@@ -76,8 +79,10 @@ describe('TopicsController', () => {
     mockService.getTopicById.mockResolvedValue({ id: 1 });
     mockService.deleteTopic.mockResolvedValue({ id: 1 });
 
-    const res = await controller.remove(1);
-    expect(mockService.deleteTopic).toHaveBeenCalledWith(1);
+    const req = { user: { id: 11 } };
+
+    const res = await controller.remove(1, req);
+    expect(mockService.deleteTopic).toHaveBeenCalledWith(1, 11);
     expect(res).toEqual({ id: 1 });
   });
 });

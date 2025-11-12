@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TopicsService } from './topics.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { GCSContentService } from '../content/gcs-content.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 describe('TopicsService', () => {
   let service: TopicsService;
@@ -16,10 +16,10 @@ describe('TopicsService', () => {
     },
   };
 
-  const mockGCS = {
-    deleteFile: jest.fn(),
-    downloadHtmlFile: jest.fn(),
-    downloadJsonFile: jest.fn(),
+  const mockNotifications = {
+    createTopicCreatedNotification: jest.fn(),
+    createTopicUpdatedNotification: jest.fn(),
+    createTopicDeletedNotification: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -27,7 +27,7 @@ describe('TopicsService', () => {
       providers: [
         TopicsService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: GCSContentService, useValue: mockGCS },
+        { provide: NotificationsService, useValue: mockNotifications },
       ],
     }).compile();
 
@@ -49,7 +49,8 @@ describe('TopicsService', () => {
 
       mockPrisma.topic.create.mockResolvedValue(expected);
 
-      const res = await service.createTopic(dto);
+      const userId = 42;
+      const res = await service.createTopic(dto, userId);
 
       expect(mockPrisma.topic.create).toHaveBeenCalledWith({
         data: { name: 'Introduction to React', type: 'content' },
@@ -59,6 +60,9 @@ describe('TopicsService', () => {
         },
       });
       expect(res).toEqual(expected);
+      expect(
+        mockNotifications.createTopicCreatedNotification,
+      ).toHaveBeenCalledWith(userId, expected.id, expected.name);
     });
 
     it('should create a topic with specified type', async () => {
@@ -74,7 +78,7 @@ describe('TopicsService', () => {
 
       mockPrisma.topic.create.mockResolvedValue(expected);
 
-      const res = await service.createTopic(dto);
+      const res = await service.createTopic(dto, 99);
 
       expect(mockPrisma.topic.create).toHaveBeenCalledWith({
         data: { name: 'Final Exam', type: 'evaluation' },
@@ -84,6 +88,9 @@ describe('TopicsService', () => {
         },
       });
       expect(res).toEqual(expected);
+      expect(
+        mockNotifications.createTopicCreatedNotification,
+      ).toHaveBeenCalledWith(99, expected.id, expected.name);
     });
   });
 
@@ -163,7 +170,7 @@ describe('TopicsService', () => {
       };
       mockPrisma.topic.update.mockResolvedValue(updated);
 
-      const res = await service.updateTopic(1, { name: 'Nuevo' });
+      const res = await service.updateTopic(1, { name: 'Nuevo' }, 7);
 
       expect(mockPrisma.topic.update).toHaveBeenCalledWith({
         where: { id: 1 },
@@ -174,6 +181,25 @@ describe('TopicsService', () => {
         },
       });
       expect(res).toEqual(updated);
+      expect(
+        mockNotifications.createTopicUpdatedNotification,
+      ).toHaveBeenCalledWith(7, updated.id, updated.name);
+    });
+  });
+
+  describe('deleteTopic', () => {
+    it('elimina un topic y notifica', async () => {
+      const topic = { id: 5, name: 'Eliminar', type: 'content' };
+      mockPrisma.topic.findUnique.mockResolvedValue(topic);
+      mockPrisma.topic.delete.mockResolvedValue(topic);
+
+      const res = await service.deleteTopic(5, 101);
+
+      expect(mockPrisma.topic.delete).toHaveBeenCalledWith({ where: { id: 5 } });
+      expect(
+        mockNotifications.createTopicDeletedNotification,
+      ).toHaveBeenCalledWith(101, topic.id, topic.name);
+      expect(res).toEqual(topic);
     });
   });
 });
