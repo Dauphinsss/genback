@@ -7,6 +7,18 @@ export class CreateContentDto {
 
   @IsOptional()
   blocksJson?: any; // BlockNote JSON puede ser array u objeto
+
+  @IsOptional()
+  @IsString()
+  createdBy?: string;
+
+  @IsOptional()
+  @IsString()
+  performedBy?: string;
+
+  @IsOptional()
+  @IsString()
+  changeSummary?: string;
 }
 
 export class UpdateContentDto {
@@ -16,4 +28,12 @@ export class UpdateContentDto {
 
   @IsOptional()
   blocksJson?: any; // BlockNote JSON puede ser array u objeto
+
+  @IsOptional()
+  @IsString()
+  updatedBy?: string;
+
+  @IsOptional()
+  @IsString()
+  changeSummary?: string;
 }
