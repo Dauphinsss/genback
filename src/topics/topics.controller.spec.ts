@@ -71,7 +71,11 @@ describe('TopicsController', () => {
     const req = { user: { id: 10 } };
 
     const res = await controller.update(1, { name: 'Nuevo' }, req);
-    expect(mockService.updateTopic).toHaveBeenCalledWith(1, { name: 'Nuevo' }, 10);
+    expect(mockService.updateTopic).toHaveBeenCalledWith(
+      1,
+      { name: 'Nuevo' },
+      10,
+    );
     expect(res).toEqual({ id: 1, name: 'Nuevo' });
   });
 

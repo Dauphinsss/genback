@@ -119,8 +119,7 @@ export class ContentService {
       data: {
         contentId: historyEntry.contentId,
         performedBy: options.restoredBy ?? 'Desconocido',
-        changeSummary:
-          options.changeSummary ?? 'Restauró una versión anterior',
+        changeSummary: options.changeSummary ?? 'Restauró una versión anterior',
         snapshotDescription: restored.description,
         snapshotBlocksJson: restored.blocksJson,
       },

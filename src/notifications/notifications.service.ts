@@ -15,21 +15,30 @@ export class NotificationsService {
     topicId: number,
     topicName: string,
   ) {
-    console.log(`[NotificationsService] createTopicCreatedNotification called for topic "${topicName}" (ID: ${topicId}) by user ${userId}`);
+    console.log(
+      `[NotificationsService] createTopicCreatedNotification called for topic "${topicName}" (ID: ${topicId}) by user ${userId}`,
+    );
 
     // Get all users with topic management privilege
     const usersWithPrivilege = await this.getUsersWithTopicPrivilege();
-    console.log(`[NotificationsService] Will create notifications for ${usersWithPrivilege.length} users:`, usersWithPrivilege);
+    console.log(
+      `[NotificationsService] Will create notifications for ${usersWithPrivilege.length} users:`,
+      usersWithPrivilege,
+    );
 
     if (usersWithPrivilege.length === 0) {
-      console.warn('[NotificationsService] No users with create_topics privilege found! No notifications will be created.');
+      console.warn(
+        '[NotificationsService] No users with create_topics privilege found! No notifications will be created.',
+      );
       return [];
     }
 
     // Create notifications for all privileged users
     const notifications = await Promise.all(
       usersWithPrivilege.map(async (privilegedUserId) => {
-        console.log(`[NotificationsService] Creating notification for user ${privilegedUserId}`);
+        console.log(
+          `[NotificationsService] Creating notification for user ${privilegedUserId}`,
+        );
         const notification = await this.prisma.notification.create({
           data: {
             userId: privilegedUserId,
@@ -39,20 +48,31 @@ export class NotificationsService {
             isRead: false,
           },
         });
-        console.log(`[NotificationsService] Notification created:`, notification);
+        console.log(
+          `[NotificationsService] Notification created:`,
+          notification,
+        );
 
         // Emit real-time notification
-        this.notificationsGateway.emitNotificationToUser(privilegedUserId, notification);
+        this.notificationsGateway.emitNotificationToUser(
+          privilegedUserId,
+          notification,
+        );
 
         // Update unread count
         const count = await this.getUnreadCount(privilegedUserId);
-        this.notificationsGateway.emitUnreadCountToUser(privilegedUserId, count);
+        this.notificationsGateway.emitUnreadCountToUser(
+          privilegedUserId,
+          count,
+        );
 
         return notification;
-      })
+      }),
     );
 
-    console.log(`[NotificationsService] Total notifications created: ${notifications.length}`);
+    console.log(
+      `[NotificationsService] Total notifications created: ${notifications.length}`,
+    );
     return notifications;
   }
 
@@ -78,14 +98,20 @@ export class NotificationsService {
         });
 
         // Emit real-time notification
-        this.notificationsGateway.emitNotificationToUser(privilegedUserId, notification);
+        this.notificationsGateway.emitNotificationToUser(
+          privilegedUserId,
+          notification,
+        );
 
         // Update unread count
         const count = await this.getUnreadCount(privilegedUserId);
-        this.notificationsGateway.emitUnreadCountToUser(privilegedUserId, count);
+        this.notificationsGateway.emitUnreadCountToUser(
+          privilegedUserId,
+          count,
+        );
 
         return notification;
-      })
+      }),
     );
 
     return notifications;
@@ -113,14 +139,20 @@ export class NotificationsService {
         });
 
         // Emit real-time notification
-        this.notificationsGateway.emitNotificationToUser(privilegedUserId, notification);
+        this.notificationsGateway.emitNotificationToUser(
+          privilegedUserId,
+          notification,
+        );
 
         // Update unread count
         const count = await this.getUnreadCount(privilegedUserId);
-        this.notificationsGateway.emitUnreadCountToUser(privilegedUserId, count);
+        this.notificationsGateway.emitUnreadCountToUser(
+          privilegedUserId,
+          count,
+        );
 
         return notification;
-      })
+      }),
     );
 
     return notifications;
@@ -191,8 +223,11 @@ export class NotificationsService {
       select: { userId: true },
     });
 
-    const userIds = userPrivileges.map(up => up.userId);
-    console.log(`[NotificationsService] Found ${userIds.length} users with create_topics privilege:`, userIds);
+    const userIds = userPrivileges.map((up) => up.userId);
+    console.log(
+      `[NotificationsService] Found ${userIds.length} users with create_topics privilege:`,
+      userIds,
+    );
 
     return userIds;
   }
@@ -214,7 +249,7 @@ export class NotificationsService {
     if (!topicPrivilege) {
       return {
         error: 'No create_topics privilege found',
-        allPrivileges
+        allPrivileges,
       };
     }
 
@@ -229,7 +264,7 @@ export class NotificationsService {
     return {
       privilege: topicPrivilege,
       usersCount: userPrivileges.length,
-      users: userPrivileges.map(up => ({
+      users: userPrivileges.map((up) => ({
         userId: up.userId,
         userName: up.user.name,
         userEmail: up.user.email,

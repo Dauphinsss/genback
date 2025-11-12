@@ -195,7 +195,9 @@ describe('TopicsService', () => {
 
       const res = await service.deleteTopic(5, 101);
 
-      expect(mockPrisma.topic.delete).toHaveBeenCalledWith({ where: { id: 5 } });
+      expect(mockPrisma.topic.delete).toHaveBeenCalledWith({
+        where: { id: 5 },
+      });
       expect(
         mockNotifications.createTopicDeletedNotification,
       ).toHaveBeenCalledWith(101, topic.id, topic.name);

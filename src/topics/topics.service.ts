@@ -76,7 +76,11 @@ export class TopicsService {
     });
   }
 
-  async updateTopic(id: number, updateTopicDto: UpdateTopicDto, userId: number) {
+  async updateTopic(
+    id: number,
+    updateTopicDto: UpdateTopicDto,
+    userId: number,
+  ) {
     const topic = await this.prisma.topic.update({
       where: { id },
       data: updateTopicDto,

@@ -99,8 +99,8 @@ describe('ContentService (unit)', () => {
     it('crea una entrada de histórico con timestamp y profesor tras la creación', async () => {
       const topicId = 15;
       const blocksJson = [{ type: 'paragraph', content: 'Versión 1.0' }];
-      const dto: any = { 
-        description: 'Descripción inicial', 
+      const dto: any = {
+        description: 'Descripción inicial',
         blocksJson,
         createdBy: 'Profesor 1',
       };

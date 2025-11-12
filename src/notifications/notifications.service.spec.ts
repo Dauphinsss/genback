@@ -5,7 +5,6 @@ import { PrismaService } from '../prisma/prisma.service';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
-  let prismaService: PrismaService;
   let gateway: NotificationsGateway;
 
   const mockPrismaService = {
@@ -46,7 +45,6 @@ describe('NotificationsService', () => {
     }).compile();
 
     service = module.get<NotificationsService>(NotificationsService);
-    prismaService = module.get<PrismaService>(PrismaService);
     gateway = module.get<NotificationsGateway>(NotificationsGateway);
     jest.clearAllMocks();
   });
@@ -348,9 +346,7 @@ describe('NotificationsService', () => {
       const userId = 3;
       const updateResult = { count: 5 };
 
-      mockPrismaService.notification.updateMany.mockResolvedValue(
-        updateResult,
-      );
+      mockPrismaService.notification.updateMany.mockResolvedValue(updateResult);
 
       const result = await service.markAllAsRead(userId);
 
@@ -367,9 +363,7 @@ describe('NotificationsService', () => {
       const userId = 4;
       const updateResult = { count: 0 };
 
-      mockPrismaService.notification.updateMany.mockResolvedValue(
-        updateResult,
-      );
+      mockPrismaService.notification.updateMany.mockResolvedValue(updateResult);
 
       const result = await service.markAllAsRead(userId);
 
