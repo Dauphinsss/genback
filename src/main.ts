@@ -16,20 +16,23 @@ async function bootstrap() {
     }),
   );
 
+  // CORS configuration - allow frontend URL from env or localhost
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? [process.env.FRONTEND_URL, 'http://localhost:3000']
+    : ['http://localhost:3000'];
+
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
   });
+
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads/',
   });
 
-  await app.listen(process.env.PORT ?? 4000);
-  console.log(
-    `Application is running on http://localhost:${process.env.PORT ?? 4000}`,
-  );
+  // Cloud Run uses PORT env variable (defaults to 8080)
+  const port = process.env.PORT ?? 4000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`Application is running on port ${port}`);
 }
 bootstrap();
-
-//is it for testing github actions?
-//still testing github actions
