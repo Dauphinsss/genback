@@ -39,7 +39,10 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 # Copy built application
 COPY --from=builder /app/dist ./dist
 
-# Copy entrypoint scrip
+# Copy Google Cloud Storage credentials
+COPY generacion-472902-a49bace4a296.json ./
+
+# Copy entrypoint script
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 

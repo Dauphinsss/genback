@@ -30,6 +30,9 @@ jobs:
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker
 
+      - name: Create GCS credentials file
+        run: echo '${{ secrets.GCS_CREDENTIALS }}' > generacion-472902-a49bace4a296.json
+
       - name: Build Docker image
         run: |
           docker build -t gcr.io/generacion-472902/genback:${{ github.sha }} \
