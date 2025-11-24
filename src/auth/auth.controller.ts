@@ -32,15 +32,22 @@ export class AuthController {
   @Get('microsoft/callback')
   @UseGuards(AuthGuard('microsoft'))
   async microsoftCallback(@Req() req, @Res() res) {
-    const { email, name, provider, providerId, avatar } = req.user;
-    const { token } = await this.authService.validateOAuthLogin(
-      email,
-      name,
-      provider,
-      providerId,
-      avatar,
-    );
-    return res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}`);
+    try {
+      const { email, name, provider, providerId, avatar } = req.user;
+      const { token } = await this.authService.validateOAuthLogin(
+        email,
+        name,
+        provider,
+        providerId,
+        avatar,
+      );
+      return res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}`);
+    } catch (error) {
+      console.error('Microsoft callback error:', error);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/login?error=microsoft_auth_failed`,
+      );
+    }
   }
 
   @UseGuards(JwtAuthGuard)
