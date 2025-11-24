@@ -15,5 +15,4 @@ test
 *.md
 Dockerfile
 .dockerignore
-generacion-472902-a49bace4a296.json
 uploads
