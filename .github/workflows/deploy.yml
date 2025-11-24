@@ -19,6 +19,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Create GCS credentials file
+        run: |
+          cat > generacion-472902-a49bace4a296.json << 'EOF'
+          ${{ secrets.GCS_CREDENTIALS }}
+          EOF
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -30,8 +36,17 @@ jobs:
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker
 
-      - name: Create GCS credentials file
-        run: echo '${{ secrets.GCS_CREDENTIALS }}' > generacion-472902-a49bace4a296.json
+      - name: Debug - Check if credentials file exists
+        run: |
+          if [ -f "generacion-472902-a49bace4a296.json" ]; then
+            echo "✅ File exists"
+            echo "File size: $(wc -c < generacion-472902-a49bace4a296.json) bytes"
+            echo "First line: $(head -n 1 generacion-472902-a49bace4a296.json)"
+          else
+            echo "❌ File does not exist"
+            echo "Secret GCS_CREDENTIALS is empty or not set!"
+            exit 1
+          fi
 
       - name: Build Docker image
         run: |
