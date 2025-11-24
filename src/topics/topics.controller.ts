@@ -30,9 +30,10 @@ export class TopicsController {
   async create(@Body() createTopicDto: CreateTopicDto, @Req() req) {
     try {
       return await this.topicsService.createTopic(createTopicDto, req.user.id);
-    } catch {
+    } catch (error) {
+      console.error('[TopicsController] Error creating topic:', error);
       throw new HttpException(
-        'Error creating topic',
+        error.message || 'Error creating topic',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
