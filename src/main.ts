@@ -17,9 +17,14 @@ async function bootstrap() {
   );
 
   // CORS configuration - allow frontend URL from env or localhost
-  const allowedOrigins = process.env.FRONTEND_URL
-    ? [process.env.FRONTEND_URL, 'http://localhost:3000']
-    : ['http://localhost:3000'];
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:4000',
+  ];
+  
+  if (process.env.FRONTEND_URL) {
+    allowedOrigins.push(process.env.FRONTEND_URL);
+  }
 
   app.enableCors({
     origin: allowedOrigins,
