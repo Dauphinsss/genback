@@ -1,0 +1,68 @@
+name: Deploy to Cloud Run
+
+on:
+  workflow_run:
+    workflows: ["Run Tests"]
+    types:
+      - completed
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloud Run
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Build Docker image
+        run: |
+          docker build -t gcr.io/generacion-472902/genback:${{ github.sha }} \
+                       -t gcr.io/generacion-472902/genback:latest .
+
+      - name: Push Docker image to GCR
+        run: |
+          docker push gcr.io/generacion-472902/genback:${{ github.sha }}
+          docker push gcr.io/generacion-472902/genback:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy genback \
+            --image gcr.io/generacion-472902/genback:${{ github.sha }} \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --add-cloudsql-instances generacion-472902:us-central1:genback-db \
+            --set-env-vars "DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/pyson?host=/cloudsql/generacion-472902:us-central1:genback-db" \
+            --set-env-vars "JWT_SECRET=${{ secrets.JWT_SECRET }}" \
+            --set-env-vars "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" \
+            --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            --set-env-vars "MS_CLIENT_ID=${{ secrets.MS_CLIENT_ID }}" \
+            --set-env-vars "MS_CLIENT_SECRET=${{ secrets.MS_CLIENT_SECRET }}" \
+            --set-env-vars "MS_TENANT_ID=common" \
+            --set-env-vars "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" \
+            --set-env-vars "BACKEND_URL=https://genback-40948769328.us-central1.run.app" \
+            --set-env-vars "GCP_BUCKET_NAME=danielitus" \
+            --set-env-vars "GOOGLE_APPLICATION_CREDENTIALS=/app/generacion-472902-a49bace4a296.json" \
+            --set-env-vars "PORT=8080" \
+            --set-env-vars "NODE_ENV=production"
+
+      - name: Show deployment URL
+        run: |
+          echo "🚀 Deployment completed successfully!"
+          echo "📍 URL: https://genback-40948769328.us-central1.run.app"

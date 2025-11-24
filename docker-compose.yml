@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: genback-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: pyson
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: genback-app
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/pyson
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      GOOGLE_CLIENT_ID: dummy-google-client-id
+      GOOGLE_CLIENT_SECRET: dummy-google-secret
+      GOOGLE_CALLBACK_URL: http://localhost:8080/auth/google/callback
+      MS_CLIENT_ID: dummy-ms-client-id
+      MS_CLIENT_SECRET: dummy-ms-secret
+      MS_TENANT_ID: common
+      BACKEND_URL: http://localhost:8080
+      FRONTEND_URL: http://localhost:3000
+      GCS_BUCKET_NAME: your-bucket-name
+      GCS_PROJECT_ID: generacion-472902
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

@@ -1,0 +1,53 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: genback
+  annotations:
+    run.googleapis.com/launch-stage: BETA
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cloudsql-instances: generacion-472902:us-central1:genback-db
+        autoscaling.knative.dev/minScale: '0'
+        autoscaling.knative.dev/maxScale: '10'
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+      - image: gcr.io/generacion-472902/genback:latest
+        ports:
+        - name: http1
+          containerPort: 8080
+        resources:
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        env:
+        - name: DATABASE_URL
+          value: postgresql://postgres:TempPass123!@localhost:5432/pyson?host=/cloudsql/generacion-472902:us-central1:genback-db
+        - name: JWT_SECRET
+          value: temporary-jwt-secret-change-after-deploy
+        - name: GOOGLE_CLIENT_ID
+          value: dummy-google-id
+        - name: GOOGLE_CLIENT_SECRET
+          value: dummy-google-secret
+        - name: GOOGLE_CALLBACK_URL
+          value: https://genback-temp.run.app/auth/google/callback
+        - name: MS_CLIENT_ID
+          value: dummy-ms-id
+        - name: MS_CLIENT_SECRET
+          value: dummy-ms-secret
+        - name: MS_TENANT_ID
+          value: common
+        - name: BACKEND_URL
+          value: https://genback-temp.run.app
+        - name: FRONTEND_URL
+          value: http://localhost:3000
+        - name: GCS_BUCKET_NAME
+          value: genback-uploads
+        - name: GCS_PROJECT_ID
+          value: generacion-472902
+  traffic:
+  - percent: 100
+    latestRevision: true
