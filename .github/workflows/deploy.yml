@@ -59,7 +59,6 @@ jobs:
             --set-env-vars "BACKEND_URL=https://genback-40948769328.us-central1.run.app" \
             --set-env-vars "GCP_BUCKET_NAME=danielitus" \
             --set-env-vars "GOOGLE_APPLICATION_CREDENTIALS=/app/generacion-472902-a49bace4a296.json" \
-            --set-env-vars "PORT=8080" \
             --set-env-vars "NODE_ENV=production"
 
       - name: Show deployment URL
